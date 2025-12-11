@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from ai import analyze_email_with_ai
 
 app = FastAPI()
 
@@ -25,10 +26,14 @@ class EmailAnalysis(BaseModel):
 
 @app.post("/analyze_email", response_model=EmailAnalysis)
 def analyze_email(email: EmailInput):
+    # שולחים את המייל ל-Gemini
+    result = analyze_email_with_ai(email.subject, email.body)
+
+    # ניקח את נתוני ה-AI ונחזיר במודל Pydantic
     return EmailAnalysis(
-        summary="סיכום לדוגמה (כרגע בלי AI)",
-        category="general",
-        priority="medium",
-        tasks=["לענות לשולח", "לבדוק פרטים"],
-        suggested_reply="תודה על הפנייה, נחזור אליך בהקדם."
+        summary=result.get("summary", ""),
+        category=result.get("category", "general"),
+        priority=result.get("priority", "medium"),
+        tasks=result.get("tasks", []),
+        suggested_reply=result.get("suggested_reply", "")
     )
