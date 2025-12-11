@@ -26,10 +26,8 @@ class EmailAnalysis(BaseModel):
 
 @app.post("/analyze_email", response_model=EmailAnalysis)
 def analyze_email(email: EmailInput):
-    # שולחים את המייל ל-Gemini
     result = analyze_email_with_ai(email.subject, email.body)
 
-    # ניקח את נתוני ה-AI ונחזיר במודל Pydantic
     return EmailAnalysis(
         summary=result.get("summary", ""),
         category=result.get("category", "general"),
@@ -37,3 +35,4 @@ def analyze_email(email: EmailInput):
         tasks=result.get("tasks", []),
         suggested_reply=result.get("suggested_reply", "")
     )
+

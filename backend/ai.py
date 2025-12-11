@@ -1,54 +1,60 @@
-import google.generativeai as genai
-import json
-from pydantic import BaseModel
-from dotenv import load_dotenv
 import os
-import ssl
-import certifi
+import json
+import google.generativeai as genai
+from dotenv import load_dotenv
 
-os.environ["GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"] = certifi.where()
+load_dotenv()
 
-load_dotenv() 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+API_KEY = os.getenv("GEMINI_API_KEY")
 
-genai.configure(api_key=GEMINI_API_KEY)
+genai.configure(api_key=API_KEY)
 
-# פונקציית קריאה למודל
-def analyze_email_with_ai(subject: str | None, body: str):
+MODEL_NAME = "gemini-2.5-flash"
+
+ANALYSIS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "summary": {"type": "string"},
+        "category": {"type": "string"},
+        "priority": {"type": "string"},
+        "tasks": {
+            "type": "array",
+            "items": {"type": "string"}
+        },
+        "suggested_reply": {"type": "string"}
+    },
+    "required": ["summary", "category", "priority", "tasks", "suggested_reply"]
+}
+
+
+def analyze_email_with_ai(subject: str, body: str):
     prompt = f"""
-אתה מנתח מיילים חכם. קח את הנושא והתוכן, ותחזיר ניתוח בפורמט JSON.
-חובה להחזיר JSON תקין בלבד ללא טקסט מסביב.
+    נתח את המייל הבא:
+    נושא: {subject}
+    תוכן: {body}
 
-הפורמט:
-{{
-  "summary": "סיכום קצר של המייל",
-  "category": "finance / kids_school / health / study_work / urgent / general",
-  "priority": "low / medium / high",
-  "tasks": ["רשימת משימות שנגזרות מהטקסט"],
-  "suggested_reply": "טיוטת תשובה מנומסת"
-}}
-
-כאן הנתונים:
-Subject: {subject}
-Body: {body}
-
-תחזיר רק JSON תקין.
-"""
-
-    model = genai.GenerativeModel("gemini-1.5-flash")
-
-    response = model.generate_content(prompt)
+    החזר JSON בלבד בהתאם לסכמה.
+    """
 
     try:
-        # ניסיון להמיר לפורמט JSON
-        data = json.loads(response.text)
-        return data
-    except Exception:
-        # טיפול במקרה שהמודל החזיר משהו לא חוקי
+        model = genai.GenerativeModel(MODEL_NAME)
+
+        response = model.generate_content(
+            prompt,
+            generation_config={
+                "response_mime_type": "application/json",
+                "response_schema": ANALYSIS_SCHEMA
+            }
+        )
+
+        return json.loads(response.text)
+
+    except Exception as e:
+        print("AI ERROR:", e)
         return {
-            "summary": "לא ניתן היה לנתח את המייל",
-            "category": "general",
+            "summary": "שגיאה בניתוח המייל",
+            "category": "technical_error",
             "priority": "medium",
-            "tasks": ["קריאה ידנית נדרשת"],
-            "suggested_reply": "היי, קיבלתי את המייל. אבדוק ואחזור אליך."
+            "tasks": ["AI error occurred"],
+            "suggested_reply": "הייתה תקלה בעיבוד המייל."
         }
