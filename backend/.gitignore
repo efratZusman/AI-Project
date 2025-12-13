@@ -1,3 +1,14 @@
 .env
 __pycache__/
 *.pyc
+venv/
+env/
+*.log
+.vscode/
+*.pid
+Thumbs.db
+Desktop.ini
+*.pyo
+*.pyd
+*.swp
+*.swo
