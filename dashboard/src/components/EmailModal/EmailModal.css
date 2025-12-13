@@ -1,0 +1,70 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0,0,0,0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(3px);
+  z-index: 2000;
+}
+
+.modal-container {
+  background: #ffffff;
+  width: 650px;
+  max-height: 85vh;
+  padding: 28px;
+  border-radius: 14px;
+  overflow-y: auto;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  animation: scaleIn 0.2s ease-out;
+  position: relative;
+  direction: rtl;
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #333;
+  transition: 0.2s;
+}
+
+.modal-close-btn:hover {
+  color: #d33;
+  transform: scale(1.2);
+}
+
+.modal-title {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.modal-section {
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 5px 10px;
+  background: #eef3ff;
+  border-radius: 12px;
+  font-size: 13px;
+}

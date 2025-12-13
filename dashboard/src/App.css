@@ -1,26 +1,37 @@
-/* src/App.css */
+/* src/index.css */
 
-:root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color-scheme: light;
-  color: #0f172a;
-  background-color: #020617;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+:root {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: light;
+  
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top left, #e0f2fe 0, #eef2ff 35%, #f9fafb 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #1e293b;
 }
 
+#root {
+  min-height: 100vh;
+}
+
+/* src/App.css */
+
 .app-shell {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 22px 16px 32px;
+  min-height: 100vh;
+  width: 100%;
 }

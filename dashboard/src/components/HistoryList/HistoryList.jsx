@@ -1,4 +1,3 @@
-// src/components/HistoryList.jsx
 import "./HistoryList.css";
 
 function HistoryList({
@@ -9,6 +8,8 @@ function HistoryList({
   onFiltersChange,
   loading,
 }) {
+  if (!filters) filters = { q: "", category: "all", priority: "all" };
+
   const handleInputChange = (field, value) => {
     onFiltersChange({
       ...filters,
@@ -27,6 +28,7 @@ function HistoryList({
         </div>
       </div>
 
+      {/* 🔹 מסננים */}
       <div className="history-filters">
         <div className="history-filter-group">
           <label>חיפוש חופשי</label>
@@ -60,13 +62,14 @@ function HistoryList({
             onChange={(e) => handleInputChange("priority", e.target.value)}
           >
             <option value="all">הכל</option>
-            <option value="high">גבוהה</option>
-            <option value="medium">בינונית</option>
-            <option value="low">נמוכה</option>
+            <option value="גבוהה">גבוהה</option>
+            <option value="בינונית">בינונית</option>
+            <option value="נמוכה">נמוכה</option>
           </select>
         </div>
       </div>
 
+      {/* 🔹 רשימת תוצאות */}
       <div className="history-list">
         {loading && <div className="history-loading">טוען נתונים...</div>}
 
@@ -85,9 +88,7 @@ function HistoryList({
             >
               <div className="history-item-main">
                 <div className="history-item-top">
-                  <span className="history-item-category">
-                    {email.category || "general"}
-                  </span>
+                  <span className="history-item-category">{email.category}</span>
                   <span
                     className={`history-item-priority priority-${email.priority}`}
                   >
