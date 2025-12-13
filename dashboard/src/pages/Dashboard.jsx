@@ -1,3 +1,5 @@
+// src/pages/Dashboard.jsx
+
 import { useState, useEffect } from "react";
 import "./Dashboard.css";
 
@@ -16,14 +18,17 @@ export default function Dashboard() {
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // מסננים ברירת מחדל
   const [filters, setFilters] = useState({
     q: "",
     category: "all",
     priority: "all",
   });
 
-  const [selectedEmail, setSelectedEmail] = useState(null);
+  // מודל – אינדקס במערך
+  const [selectedIndex, setSelectedIndex] = useState(null);
 
+  // ------------ טעינת כל ההיסטוריה ------------
   const loadEmails = async () => {
     setLoading(true);
     const data = await getHistory();
@@ -35,6 +40,7 @@ export default function Dashboard() {
     loadEmails();
   }, []);
 
+  // ------------ שינוי מסננים ------------
   const handleFiltersChange = async (newFilters) => {
     setFilters(newFilters);
     setLoading(true);
@@ -43,14 +49,35 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  const handleSelectEmail = async (id) => {
-    const email = await getEmailById(id);
-    setSelectedEmail(email);
+  // ------------ פתיחת מודל ------------
+  const openEmailModal = (id) => {
+    const index = emails.findIndex((e) => e.id === id);
+    if (index !== -1) setSelectedIndex(index);
   };
 
+  // ------------ סגירת מודל ------------
+  const closeModal = () => setSelectedIndex(null);
+
+  // ------------ ניווט בין אימיילים ------------
+  const goNext = () => {
+    if (selectedIndex < emails.length - 1) {
+      setSelectedIndex(selectedIndex + 1);
+    }
+  };
+
+  const goPrev = () => {
+    if (selectedIndex > 0) {
+      setSelectedIndex(selectedIndex - 1);
+    }
+  };
+
+  // ------------ מחיקה ------------
   const handleDeleteEmail = async (id) => {
     await deleteEmail(id);
-    loadEmails();
+    await loadEmails();
+
+    // אם מחקת בזמן שהמודל פתוח → לסגור ולהימנע מבאגים
+    if (selectedIndex !== null) closeModal();
   };
 
   return (
@@ -65,12 +92,22 @@ export default function Dashboard() {
           loading={loading}
           filters={filters}
           onFiltersChange={handleFiltersChange}
-          onSelectEmail={handleSelectEmail}
+          onSelectEmail={openEmailModal}
           onDeleteEmail={handleDeleteEmail}
         />
       </div>
 
-      <EmailModal email={selectedEmail} onClose={() => setSelectedEmail(null)} />
+      {/* ---- מודל ---- */}
+      {selectedIndex !== null && (
+        <EmailModal
+          email={emails[selectedIndex]}
+          onClose={closeModal}
+          onNext={goNext}
+          onPrev={goPrev}
+          hasNext={selectedIndex < emails.length - 1}
+          hasPrev={selectedIndex > 0}
+        />
+      )}
     </div>
   );
 }
