@@ -1,55 +1,28 @@
-// src/services/api.js
-
 const BASE_URL = "http://127.0.0.1:8000";
 
 async function handleResponse(response) {
+  const data = await response.json();
   if (!response.ok) {
-    let message = `HTTP ${response.status}`;
-    try {
-      const data = await response.json();
-      if (data && data.detail) {
-        message = data.detail;
-      }
-    } catch (_) {}
-    throw new Error(message);
+    throw new Error(data.detail || "Server error");
   }
-  return response.json();
+  return data;
 }
 
-export async function analyzeEmail({ subject, body }) {
-  const res = await fetch(`${BASE_URL}/analyze_email`, {
+export async function analyzeBeforeSend(draft) {
+  const res = await fetch(`${BASE_URL}/analyze-before-send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ subject, body }),
+    body: JSON.stringify({ draft }),
   });
   return handleResponse(res);
 }
 
-export async function getHistory() {
-  const res = await fetch(`${BASE_URL}/history`);
-  return handleResponse(res);
-}
-
-export async function getEmailById(id) {
-  const res = await fetch(`${BASE_URL}/email/${id}`);
-  return handleResponse(res);
-}
-
-export async function deleteEmail(id) {
-  const res = await fetch(`${BASE_URL}/email/${id}`, {
-    method: "DELETE",
+export async function analyzeFollowUp(email_body, days_passed = 3) {
+  const res = await fetch(`${BASE_URL}/analyze-follow-up`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email_body, days_passed }),
   });
-  return handleResponse(res);
-}
-
-export async function searchEmails({ q, category, priority }) {
-  const params = new URLSearchParams();
-
-  if (q && q.trim()) params.append("q", q.trim());
-  if (category && category !== "all") params.append("category", category);
-  if (priority && priority !== "all") params.append("priority", priority);
-
-  const res = await fetch(`${BASE_URL}/search?${params.toString()}`);
   return handleResponse(res);
 }
 

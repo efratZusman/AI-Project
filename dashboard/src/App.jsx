@@ -1,13 +1,10 @@
-// src/App.jsx
 import "./App.css";
 import Dashboard from "./pages/Dashboard";
 
-function App() {
+export default function App() {
   return (
     <div className="app-shell">
       <Dashboard />
     </div>
   );
 }
-
-export default App;
