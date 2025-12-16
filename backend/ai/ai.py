@@ -11,7 +11,7 @@ os.environ["GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"] = r"C:\ProgramData\NetFree\CA\net
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 MODEL_NAME = "gemini-2.5-flash"
@@ -50,10 +50,10 @@ def generate_structured_json(prompt: str, schema: dict) -> dict:
                 "top_p": 0.8,
                 "top_k": 40,
             },
-            request_options={"timeout": 30},
+            request_options={"timeout": 60},
         )
+        print("Gemini response received successfully")
 
-        print("RAW AI RESPONSE:", response)
         return json.loads(response.text)
 
     except Exception as e:

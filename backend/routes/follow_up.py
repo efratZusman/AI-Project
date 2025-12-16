@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 from pydantic import BaseModel
-from ai.analyzer import analyze_follow_up
+from backend.ai.analyzer import analyze_follow_up
 
 router = APIRouter()
 
