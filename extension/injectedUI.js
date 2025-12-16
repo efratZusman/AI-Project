@@ -1,14 +1,52 @@
+// extension/injectedUI.js
 (function () {
   const BASE_URL = "http://127.0.0.1:8000";
 
-  // ---- API HELPERS ----
+  // 👇 שליטה: true = עובד במצב MOCK בלי קריאות API אמיתיות
+  const MOCK_MODE = true;
+
+  // ============================================================
+  // API WRAPPERS
+  // ============================================================
+
   async function handleResponse(res) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Server error");
     return data;
   }
 
+  // ---------- BEFORE SEND MOCK ----------
+  function mockBeforeSend(payload) {
+    return {
+      intent: "כוונה חיובית — המייל מבקש הבהרה ידידותית.",
+      risk_level: "low",
+      risk_factors: ["טון ניטרלי", "לא נשמע ביקורתי", "אין מילות לחץ"],
+      recipient_interpretation: "הנמען יבין זאת כמייל מקצועי וענייני.",
+      send_decision: "send_as_is",
+      follow_up_needed: false,
+      safer_subject: payload.subject || "נושא משופר לדוגמה",
+      safer_body: "זהו ניסוח בטוח יותר, שמיועד לבדיקה בזמן שה‑API מכובה.",
+      notes_for_sender: ["את משתמשת ב‑Mock Mode — אין פניה אמיתית לשרת."]
+    };
+  }
+
+  // ---------- FOLLOW UP MOCK ----------
+  function mockFollowUp(body, days) {
+    return {
+      needs_follow_up: days > 2,
+      urgency: days > 5 ? "high" : "medium",
+      follow_up_reason: "עבר זמן ואין תגובה — מקובל לשלוח תזכורת.",
+      suggested_follow_up:
+        "רק רציתי לוודא שקיבלת את המייל הקודם. אשמח לעדכון כשנוח לך 🙂"
+    };
+  }
+
   async function analyzeBeforeSend(payload) {
+    if (MOCK_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(mockBeforeSend(payload)), 300);
+      });
+    }
     const res = await fetch(`${BASE_URL}/analyze-before-send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -18,6 +56,11 @@
   }
 
   async function analyzeFollowUp(email_body, days_passed) {
+    if (MOCK_MODE) {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(mockFollowUp(email_body, days_passed)), 300);
+      });
+    }
     const res = await fetch(`${BASE_URL}/analyze-follow-up`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -26,13 +69,15 @@
     return handleResponse(res);
   }
 
-  // ---- STATE ----
+  // ============================================================
+  // UI PANEL
+  // ============================================================
+
   let panelRoot = null;
   let lastResult = null;
   let currentComposeContext = null;
   let applyHandlers = null;
 
-  // ---- PANEL CREATION ----
   function createPanel() {
     if (panelRoot) return panelRoot;
 
@@ -46,7 +91,9 @@
       </div>
 
       <div class="ai-guard-subtitle">
-        ניתוח טון וסיכונים לפני שליחה + Follow-Up חכם.
+        ניתוח טון וסיכונים לפני שליחה + Follow-Up חכם
+        <br>
+        ${MOCK_MODE ? '<b style="color:#d00">MOCK MODE פעיל — אין פנייה לשרת</b>' : ""}
       </div>
 
       <div class="ai-guard-tabs">
@@ -57,44 +104,71 @@
       <!-- BEFORE SEND TAB -->
       <div class="ai-tab-content ai-tab-content-before">
         <label class="ai-label">נושא</label>
-        <input type="text" class="ai-input ai-input-subject" placeholder="נושא המייל..." />
+        <input class="ai-input ai-input-subject" />
 
         <label class="ai-label">גוף המייל</label>
-        <textarea class="ai-textarea ai-input-body" placeholder="גוף המייל..."></textarea>
+        <textarea class="ai-textarea ai-input-body"></textarea>
 
-        <label class="ai-checkbox-row">
-          <input type="checkbox" class="ai-input-is-reply" />
-          זהו מייל Reply עם שירשור קודם
-        </label>
-
-        <button class="ai-main-btn ai-btn-analyze-before">נתח לפני שליחה</button>
+        <button class="ai-main-btn ai-btn-analyze-before">נתח</button>
         <button class="ai-secondary-btn ai-btn-apply" disabled>החל על הטיוטה</button>
 
         <div class="ai-result" style="display:none;">
-          <h4>כוונה (Intent)</h4><p class="ai-field-intent"></p>
-          <h4>רמת סיכון</h4><p class="ai-field-risk"></p>
-          <h4>גורמי סיכון</h4><ul class="ai-field-risk-factors"></ul>
-          <h4>איך זה יתקבל</h4><p class="ai-field-recipient"></p>
-          <h4>המלצה</h4><p class="ai-field-decision"></p>
-          <h4>נושא מוצע</h4><p class="ai-field-safer-subject"></p>
-          <h4>ניסוח בטוח יותר</h4><div class="ai-field-safer-body ai-rewrite-box"></div>
+
+          <div class="ai-card">
+            <h4><span class="ai-icon">🎯</span> כוונה</h4>
+            <p class="ai-field-intent"></p>
+          </div>
+
+          <div class="ai-card">
+            <h4>
+              <span class="ai-icon">⚠️</span> רמת סיכון
+              <span class="ai-badge ai-risk-badge"></span>
+            </h4>
+            <ul class="ai-field-risk-factors"></ul>
+          </div>
+
+          <div class="ai-card">
+            <h4><span class="ai-icon">🧠</span> איך זה יתקבל אצל הנמען</h4>
+            <p class="ai-field-recipient"></p>
+          </div>
+
+          <div class="ai-card">
+            <h4><span class="ai-icon">📩</span> החלטת מערכת</h4>
+            <p class="ai-field-decision"></p>
+          </div>
+
+          <div class="ai-card">
+            <h4><span class="ai-icon">📝</span> נושא מוצע</h4>
+            <p class="ai-field-safer-subject"></p>
+          </div>
+
+          <div class="ai-card">
+            <h4><span class="ai-icon">✨</span> ניסוח בטוח יותר</h4>
+            <div class="ai-field-safer-body ai-rewrite-box"></div>
+          </div>
+
+          <div class="ai-card ai-thread-card" style="display:none;">
+            <h4><span class="ai-icon">🗂️</span> שירשור קודם</h4>
+            <div class="ai-timeline ai-thread-container"></div>
+          </div>
+
         </div>
       </div>
 
       <!-- FOLLOW UP TAB -->
       <div class="ai-tab-content ai-tab-content-follow" style="display:none;">
-        <label class="ai-label">גוף המייל שנשלח</label>
+        <label class="ai-label">מייל שנשלח</label>
         <textarea class="ai-textarea ai-input-follow-body"></textarea>
 
-        <label class="ai-label">כמה ימים עברו?</label>
-        <input type="number" min="1" value="3" class="ai-input ai-input-days" />
+        <label class="ai-label">ימים מאז השליחה</label>
+        <input type="number" class="ai-input ai-input-days" value="3" />
 
-        <button class="ai-main-btn ai-btn-analyze-follow">בדיקת Follow-Up</button>
+        <button class="ai-main-btn ai-btn-analyze-follow">בדוק</button>
 
         <div class="ai-result-follow" style="display:none;">
-          <h4>צריך פולואפ?</h4><p class="ai-field-needs-follow"></p>
-          <h4>רמת דחיפות</h4><p class="ai-field-urgency"></p>
-          <h4>למה?</h4><p class="ai-field-reason"></p>
+          <h4>נדרש פולואפ?</h4><p class="ai-field-needs-follow"></p>
+          <h4>דחיפות</h4><p class="ai-field-urgency"></p>
+          <h4>סיבה</h4><p class="ai-field-reason"></p>
           <h4>הודעה מוצעת</h4><div class="ai-field-follow-body ai-rewrite-box"></div>
         </div>
       </div>
@@ -102,148 +176,178 @@
 
     document.body.appendChild(panelRoot);
 
-    // --- CLOSE BUTTON ---
-    panelRoot.querySelector(".ai-guard-close-btn").addEventListener("click", () => {
-      panelRoot.style.display = "none";
-    });
+    // כפתור סגירה
+    panelRoot.querySelector(".ai-guard-close-btn").onclick = closePanel;
 
-    // --- TABS ---
+    // טאב Before
     const tabBefore = panelRoot.querySelector(".ai-tab-before");
     const tabFollow = panelRoot.querySelector(".ai-tab-follow");
     const contentBefore = panelRoot.querySelector(".ai-tab-content-before");
     const contentFollow = panelRoot.querySelector(".ai-tab-content-follow");
 
-    tabBefore.addEventListener("click", () => {
+    tabBefore.onclick = () => {
       tabBefore.classList.add("active");
       tabFollow.classList.remove("active");
       contentBefore.style.display = "block";
       contentFollow.style.display = "none";
-    });
+    };
 
-    tabFollow.addEventListener("click", () => {
+    // טאב Follow
+    tabFollow.onclick = () => {
       tabFollow.classList.add("active");
       tabBefore.classList.remove("active");
       contentBefore.style.display = "none";
       contentFollow.style.display = "block";
-    });
+    };
 
-    // ---- BEFORE SEND: ANALYZE ----
-    panelRoot.querySelector(".ai-btn-analyze-before").addEventListener("click", async () => {
-      const subjectEl = panelRoot.querySelector(".ai-input-subject");
-      const bodyEl = panelRoot.querySelector(".ai-input-body");
-      const isReplyEl = panelRoot.querySelector(".ai-input-is-reply");
-
+    // BEFORE SEND — ניתוח
+    panelRoot.querySelector(".ai-btn-analyze-before").onclick = async () => {
       const payload = {
-        subject: subjectEl.value || "",
-        body: bodyEl.value || "",
+        subject: panelRoot.querySelector(".ai-input-subject").value || "",
+        body: panelRoot.querySelector(".ai-input-body").value || "",
         language: "auto",
-        is_reply: isReplyEl.checked,
+        is_reply: !!currentComposeContext?.isReply,
         thread_context: currentComposeContext?.thread_context || null
       };
 
       if (!payload.body.trim()) {
-        alert("צריך גוף מייל כדי לנתח");
+        alert("צריך גוף מייל כדי לנתח 🙂");
         return;
       }
 
       const resultBox = panelRoot.querySelector(".ai-result");
       const applyBtn = panelRoot.querySelector(".ai-btn-apply");
 
-      applyBtn.disabled = true;
       resultBox.style.display = "none";
+      applyBtn.disabled = true;
 
-      try {
-        const data = await analyzeBeforeSend(payload);
-        lastResult = data;
+      const data = await analyzeBeforeSend(payload);
+      lastResult = data;
 
-        // Fill UI
-        resultBox.style.display = "block";
-        panelRoot.querySelector(".ai-field-intent").textContent = data.intent || "";
-        panelRoot.querySelector(".ai-field-risk").textContent = data.risk_level || "";
+      resultBox.style.display = "block";
 
-        const ul = panelRoot.querySelector(".ai-field-risk-factors");
-        ul.innerHTML = "";
-        (data.risk_factors || []).forEach((r) => {
-          const li = document.createElement("li");
-          li.textContent = r;
-          ul.appendChild(li);
+      // ==== Thread timeline ====
+      const threadCard = panelRoot.querySelector(".ai-thread-card");
+      const threadContainer = panelRoot.querySelector(".ai-thread-container");
+
+      if (currentComposeContext?.thread_context?.length) {
+        threadCard.style.display = "block";
+        threadContainer.innerHTML = "";
+
+        currentComposeContext.thread_context.forEach((msg) => {
+          const div = document.createElement("div");
+          div.className = "ai-tl-item";
+          div.innerHTML = `
+            <div class="ai-tl-author">
+              ${msg.author === "me" ? "אני" : "הוא/היא"}:
+            </div>
+            <div class="ai-tl-text">${msg.text}</div>
+          `;
+          threadContainer.appendChild(div);
         });
-
-        panelRoot.querySelector(".ai-field-recipient").textContent =
-          data.recipient_interpretation || "";
-
-        panelRoot.querySelector(".ai-field-decision").textContent = data.send_decision || "";
-        panelRoot.querySelector(".ai-field-safer-subject").textContent = data.safer_subject || "";
-        panelRoot.querySelector(".ai-field-safer-body").textContent = data.safer_body || "";
-
-        applyBtn.disabled = false;
-
-      } catch (e) {
-        console.error(e);
-        alert("שגיאה בקריאה לשרת: " + e.message);
+      } else {
+        threadCard.style.display = "none";
       }
-    });
 
-    // ---- APPLY SAFE VERSION TO GMAIL ----
-    panelRoot.querySelector(".ai-btn-apply").addEventListener("click", () => {
-      if (!lastResult || !applyHandlers) return;
+      // ==== Risk badge ====
+      const riskBadge = panelRoot.querySelector(".ai-risk-badge");
+      riskBadge.textContent = data.risk_level || "";
+      riskBadge.className = "ai-badge ai-risk-badge";
+      if (data.risk_level === "low") riskBadge.classList.add("ai-badge-low");
+      else if (data.risk_level === "medium") riskBadge.classList.add("ai-badge-medium");
+      else if (data.risk_level === "high") riskBadge.classList.add("ai-badge-high");
 
-      applyHandlers.onApply(lastResult, currentComposeContext);
-    });
+      // intent
+      panelRoot.querySelector(".ai-field-intent").textContent =
+        data.intent || "";
 
-    // ---- FOLLOW UP ----
-    panelRoot.querySelector(".ai-btn-analyze-follow").addEventListener("click", async () => {
-      const bodyEl = panelRoot.querySelector(".ai-input-follow-body");
-      const daysEl = panelRoot.querySelector(".ai-input-days");
+      // risk factors
+      const ul = panelRoot.querySelector(".ai-field-risk-factors");
+      ul.innerHTML = "";
+      (data.risk_factors || []).forEach((f) => {
+        const li = document.createElement("li");
+        li.textContent = f;
+        ul.appendChild(li);
+      });
 
-      const body = bodyEl.value || "";
-      const days = Number(daysEl.value) || 3;
+      // recipient interpretation
+      panelRoot.querySelector(".ai-field-recipient").textContent =
+        data.recipient_interpretation || "";
+
+      // decision
+      panelRoot.querySelector(".ai-field-decision").textContent =
+        data.send_decision || "";
+
+      // safer subject/body
+      panelRoot.querySelector(".ai-field-safer-subject").textContent =
+        data.safer_subject || "";
+      panelRoot.querySelector(".ai-field-safer-body").textContent =
+        data.safer_body || "";
+
+      applyBtn.disabled = false;
+    };
+
+    // APPLY SAFE VERSION
+    panelRoot.querySelector(".ai-btn-apply").onclick = () => {
+      if (lastResult && applyHandlers) {
+        applyHandlers.onApply(lastResult, currentComposeContext);
+      }
+    };
+
+    // FOLLOW UP
+    panelRoot.querySelector(".ai-btn-analyze-follow").onclick = async () => {
+      const body = panelRoot.querySelector(".ai-input-follow-body").value || "";
+      const days = Number(panelRoot.querySelector(".ai-input-days").value) || 3;
 
       if (!body.trim()) {
         alert("צריך גוף מייל שנשלח");
         return;
       }
 
-      const resultBox = panelRoot.querySelector(".ai-result-follow");
-      resultBox.style.display = "none";
+      const box = panelRoot.querySelector(".ai-result-follow");
+      box.style.display = "none";
 
-      try {
-        const data = await analyzeFollowUp(body, days);
-        resultBox.style.display = "block";
+      const data = await analyzeFollowUp(body, days);
 
-        panelRoot.querySelector(".ai-field-needs-follow").textContent =
-          data.needs_follow_up ? "כן" : "לא";
-
-        panelRoot.querySelector(".ai-field-urgency").textContent = data.urgency || "";
-        panelRoot.querySelector(".ai-field-reason").textContent = data.follow_up_reason || "";
-        panelRoot.querySelector(".ai-field-follow-body").textContent =
-          data.suggested_follow_up || "";
-      } catch (e) {
-        console.error(e);
-        alert("שגיאה בקריאה לשרת: " + e.message);
-      }
-    });
+      box.style.display = "block";
+      panelRoot.querySelector(".ai-field-needs-follow").textContent =
+        data.needs_follow_up ? "כן" : "לא";
+      panelRoot.querySelector(".ai-field-urgency").textContent = data.urgency;
+      panelRoot.querySelector(".ai-field-reason").textContent =
+        data.follow_up_reason;
+      panelRoot.querySelector(".ai-field-follow-body").textContent =
+        data.suggested_follow_up;
+    };
 
     return panelRoot;
   }
 
-  // ---- OPEN PANEL WITH COMPOSE CONTEXT ----
   function openPanel(composeContext, handlers) {
     currentComposeContext = composeContext;
-    applyHandlers = handlers || null;
+    applyHandlers = handlers;
 
     const panel = createPanel();
     panel.style.display = "block";
 
-    // fill initial data
-    panel.querySelector(".ai-input-subject").value = composeContext.subject || "";
-    panel.querySelector(".ai-input-body").value = composeContext.body || "";
-    panel.querySelector(".ai-input-is-reply").checked = !!composeContext.isReply;
+    // נושא
+    panel.querySelector(".ai-input-subject").value =
+      composeContext.subject || "";
 
-    // default into follow-up
-    panel.querySelector(".ai-input-follow-body").value = composeContext.body || "";
+    // גוף המייל (כאן פתרנו שהטקסט יופיע)
+    panel.querySelector(".ai-input-body").value =
+      composeContext.body || "";
+
+    // בטאב follow-up – ברירת מחדל אותו גוף
+    panel.querySelector(".ai-input-follow-body").value =
+      composeContext.body || "";
   }
 
-  // expose globally
-  window.AIGuardUI = { openPanel };
+  function closePanel() {
+    if (!panelRoot) return;
+    panelRoot.style.display = "none";
+    lastResult = null;
+    currentComposeContext = null;
+  }
+
+  window.AIGuardUI = { openPanel, closePanel };
 })();
