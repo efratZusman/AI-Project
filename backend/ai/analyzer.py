@@ -1,23 +1,30 @@
 # backend/ai/analyzer.py
-
-from .ai import generate_structured_json
-from .prompts import (
+from backend.ai.ai import generate_structured_json
+from backend.ai.prompts import (
     BEFORE_SEND_SCHEMA,
     FOLLOW_UP_SCHEMA,
     build_before_send_prompt,
     build_follow_up_prompt,
 )
+from backend.models import ThreadMessage
 
 
-def analyze_before_send(draft: str) -> dict:
-    """
-    נקודת הכניסה הגבוהה ל-Backend:
-    מקבל טקסט של הודעה לפני שליחה,
-    מחזיר ניתוח + ניסוח בטוח יותר.
-    """
-    prompt = build_before_send_prompt(draft)
-    result = generate_structured_json(prompt, BEFORE_SEND_SCHEMA)
 
+def analyze_before_send(
+    subject: str,
+    body: str,
+    language: str = "auto",
+    is_reply: bool = False,
+    thread_context: list[ThreadMessage] | None = None
+):
+
+    prompt = build_before_send_prompt(
+        body=body,
+        subject=subject,
+        is_reply=is_reply,
+        thread_context=thread_context
+    )
+    return generate_structured_json(prompt, BEFORE_SEND_SCHEMA)
     # במקרה של שגיאת AI – להחזיר מבנה סביר שלא יפיל את הפרונט
     if "error" in result:
         return {

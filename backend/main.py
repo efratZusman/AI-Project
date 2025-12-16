@@ -2,8 +2,8 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes.before_send import router as before_send_router
-from routes.follow_up import router as follow_up_router
+from backend.routes.before_send import router as before_send_router
+from backend.routes.follow_up import router as follow_up_router
 
 app = FastAPI(
     title="AI Communication Guard",
