@@ -1,6 +1,8 @@
+# backend/ai/ai.py
 import os
 import json
-# NetFree certs
+
+# NetFree certs (אצלך זה כבר קיים; נשאיר כמו שהוא)
 os.environ["REQUESTS_CA_BUNDLE"] = r"C:\ProgramData\NetFree\CA\netfree-ca-bundle-curl.crt"
 os.environ["SSL_CERT_FILE"] = r"C:\ProgramData\NetFree\CA\netfree-ca-bundle-curl.crt"
 os.environ["GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"] = r"C:\ProgramData\NetFree\CA\netfree-ca-bundle-curl.crt"
@@ -35,13 +37,10 @@ def generate_structured_json(prompt: str, schema: dict) -> dict:
             },
             request_options={"timeout": 60},
         )
-
         return json.loads(response.text)
 
     except Exception as e:
         msg = str(e)
-
         if "429" in msg or "quota" in msg.lower():
             return {"error": "RATE_LIMIT"}
-
         return {"error": "AI_ERROR", "message": msg}

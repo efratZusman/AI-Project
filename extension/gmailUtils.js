@@ -10,7 +10,7 @@
     "div[aria-label='גוף ההודעה']",
     "div.editable[role='textbox']",
     "div[contenteditable='true'][g_editable='true']",
-    "div[contenteditable='true'].Am.Al"
+    "div[contenteditable='true'].Am.Al",
   ];
 
   function getSubject(composeRoot) {
@@ -27,7 +27,7 @@
       if (el) return el;
     }
 
-    // fallback: בתוך ה-thread הנוכחי
+    // fallback בתוך ה-thread הנוכחי (למצבים מוזרים של Gmail)
     const container = composeRoot.closest(".nH") || document;
     for (const sel of BODY_SELECTORS) {
       const el = container.querySelector(sel);
@@ -60,7 +60,6 @@
   function extractThreadMessages(composeRoot) {
     const container = composeRoot.closest(".nH") || document;
 
-    // כל הודעות הטקסט בשירשור
     const nodes = container.querySelectorAll(".adn .a3s");
     const texts = [];
 
@@ -69,23 +68,19 @@
       if (t.trim()) texts.push(t.trim());
     });
 
-    // לקחת 3 אחרונות כדי לא לפוצץ את הפרומפט
     const last = texts.slice(-3);
 
-    // them / me לסירוגין (הערכה, מספיק טוב לניתוח טון)
     return last.map((text, idx) => ({
       author: idx % 2 === 0 ? "them" : "me",
       text,
-      timestamp: null
+      timestamp: null,
     }));
   }
 
   function getComposeDraftData(composeRoot) {
     const subject = getSubject(composeRoot);
     const bodyElement = getBodyElement(composeRoot);
-    const body = bodyElement
-      ? bodyElement.innerText || bodyElement.textContent || ""
-      : "";
+    const body = bodyElement ? bodyElement.innerText || bodyElement.textContent : "";
 
     const isReply = detectIsReply(composeRoot);
     const thread_context = isReply ? extractThreadMessages(composeRoot) : null;

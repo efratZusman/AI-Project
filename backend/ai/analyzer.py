@@ -1,3 +1,5 @@
+# backend/ai/analyzer.py
+from typing import Optional, List
 from backend.ai.ai import generate_structured_json
 from backend.ai.prompts import (
     EMOTION_SCHEMA,
@@ -8,12 +10,18 @@ from backend.ai.prompts import (
 from backend.models import ThreadMessage
 
 
-def base_response(body: str):
+# ========= RESPONSES =========
+
+
+def base_response(body: str) -> dict:
+    """
+    תשובת בסיס "אין סיכון מיוחד" – משמשת גם כ‑fallback בשגיאות.
+    """
     return {
-        "intent": "הודעה עניינית",
+        "intent": "הודעה עניינית / יומיומית",
         "risk_level": "low",
         "risk_factors": [],
-        "recipient_interpretation": "ההודעה תיתפס כרגילה",
+        "recipient_interpretation": "ההודעה תיתפס כרגילה ומקצועית.",
         "send_decision": "send_as_is",
         "follow_up_needed": False,
         "follow_up_reason": "",
@@ -23,12 +31,22 @@ def base_response(body: str):
     }
 
 
+# ========= LAYER 1 – HEURISTICS =========
+
+
 def quick_risk_score(text: str) -> int:
+    """
+    שכבה 1 – הערכת סיכון מהירה, בלי AI.
+
+    מספרים חיוביים = יותר סיכון.
+    מספרים שליליים = טיפה "קטן מדי" או יבש, אבל לא בהכרח מסוכן.
+    """
     score = 0
-    t = text.strip()
+    t = (text or "").strip()
 
     if len(t) < 20:
-        score -= 2
+        # הודעות קצרות מאוד – לרוב לא מסוכנות, רק פחות מידע
+        score -= 1
 
     triggers = [
         "שוב",
@@ -37,8 +55,8 @@ def quick_risk_score(text: str) -> int:
         "עדיין לא",
         "לא קיבלתי תשובה",
         "כמה הודעות",
+        "כבר אמרתי",
     ]
-
     for w in triggers:
         if w in t:
             score += 2
@@ -49,44 +67,74 @@ def quick_risk_score(text: str) -> int:
     return score
 
 
+# ========= MAIN ANALYSIS (3 LAYERS) =========
+
+
 def analyze_before_send(
-    subject: str | None,
+    subject: Optional[str],
     body: str,
     language: str = "auto",
     is_reply: bool = False,
-    thread_context: list[ThreadMessage] | None = None,
-):
-    risk = quick_risk_score(body)
+    thread_context: Optional[List[ThreadMessage]] = None,
+) -> dict:
+    text = body or ""
+    risk = quick_risk_score(text)
 
-    # ===== Layer 1 =====
-    if risk <= 0:
-        res = base_response(body)
+    # ===== Layer 1 – heuristics בלבד =====
+    if risk <= 0 and not is_reply:
+        # מייל לא חריג + לא reply → חוסכים AI
+        res = base_response(text)
         res["analysis_layer"] = 1
         return res
 
-    # ===== Layer 2 =====
+    # ===== Layer 2 – ניתוח רגשי קל =====
     emotion_result = generate_structured_json(
-        build_emotion_prompt(body, language),
+        build_emotion_prompt(text, language),
         EMOTION_SCHEMA,
     )
 
     if emotion_result.get("error"):
-        res = base_response(body)
+        # לא נכשיל את המשתמש בגלל כשל AI
+        res = base_response(text)
         res["risk_level"] = "unknown"
+        res["notes_for_sender"] = [
+            "חלה שגיאה בניתוח הרגשי, נעשה שימוש בהערכה שמרנית."
+        ]
         res["analysis_layer"] = 2
         return res
 
     emotion = emotion_result.get("emotion", "neutral")
-    confidence = float(emotion_result.get("confidence", 0))
+    confidence = float(emotion_result.get("confidence", 0) or 0.0)
 
-    if emotion in ["neutral", "positive"] and confidence < 0.6 and risk < 2:
-        res = base_response(body)
+    # האם צריך לעלות לשכבה 3?
+    escalate = False
+
+    # 1) reply עם הקשר – תמיד רוצים להבין את השירשור לעומק
+    if is_reply and thread_context:
+        escalate = True
+
+    # 2) סיכון טקסטואלי גבוה יותר
+    if risk >= 2:
+        escalate = True
+
+    # 3) רגש רגיש – גם אם הסיכון הטקסטואלי לא מאוד גבוה
+    if emotion in {"tense", "frustrated", "sensitive"} and confidence >= 0.4:
+        escalate = True
+
+    # 4) אם הכול נראה רגוע → נעצור בשכבה 2
+    if not escalate:
+        res = base_response(text)
+        # נרים קצת את הרגישות אם יש לפחות טריגר אחד
+        if risk == 1 or (emotion in {"tense", "sensitive"} and confidence < 0.4):
+            res["risk_level"] = "medium"
+            res["send_decision"] = "send_as_is"
+            res["risk_factors"] = ["ייתכן שהניסוח מעט יבש או לחוץ, אבל לא חריג."]
         res["analysis_layer"] = 2
         return res
 
-    # ===== Layer 3 =====
+    # ===== Layer 3 – ניתוח מלא עם הקשר =====
     prompt = build_before_send_prompt(
-        body=body,
+        body=text,
         subject=subject,
         language=language,
         is_reply=is_reply,
@@ -96,8 +144,11 @@ def analyze_before_send(
     result = generate_structured_json(prompt, BEFORE_SEND_SCHEMA)
 
     if result.get("error"):
-        res = base_response(body)
+        res = base_response(text)
         res["risk_level"] = "unknown"
+        res["notes_for_sender"] = [
+            "חלה שגיאה בניתוח העמוק, נעשה שימוש בהערכה בסיסית."
+        ]
         res["analysis_layer"] = 3
         return res
 
@@ -105,7 +156,10 @@ def analyze_before_send(
     return result
 
 
-def analyze_follow_up(email_body: str, days_passed: int):
+def analyze_follow_up(email_body: str, days_passed: int) -> dict:
+    """
+    כרגע Stub – אם תרצי, נבנה מנוע follow-up שכבות דומה.
+    """
     return {
         "needs_follow_up": False,
         "urgency": "low",

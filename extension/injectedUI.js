@@ -2,7 +2,7 @@
 (function () {
   const BASE_URL = "http://127.0.0.1:8000";
 
-  // 👇 שליטה: true = עובד במצב MOCK בלי קריאות API אמיתיות
+  // true = עובד במצב MOCK בלי קריאות API אמיתיות
   const MOCK_MODE = false;
 
   // ============================================================
@@ -15,7 +15,6 @@
     return data;
   }
 
-  // ---------- BEFORE SEND MOCK ----------
   function mockBeforeSend(payload) {
     return {
       intent: "כוונה חיובית — המייל מבקש הבהרה ידידותית.",
@@ -26,18 +25,17 @@
       follow_up_needed: false,
       safer_subject: payload.subject || "נושא משופר לדוגמה",
       safer_body: "זהו ניסוח בטוח יותר, שמיועד לבדיקה בזמן שה‑API מכובה.",
-      notes_for_sender: ["את משתמשת ב‑Mock Mode — אין פניה אמיתית לשרת."]
+      notes_for_sender: ["את משתמשת ב‑Mock Mode — אין פניה אמיתית לשרת."],
     };
   }
 
-  // ---------- FOLLOW UP MOCK ----------
   function mockFollowUp(body, days) {
     return {
       needs_follow_up: days > 2,
       urgency: days > 5 ? "high" : "medium",
       follow_up_reason: "עבר זמן ואין תגובה — מקובל לשלוח תזכורת.",
       suggested_follow_up:
-        "רק רציתי לוודא שקיבלת את המייל הקודם. אשמח לעדכון כשנוח לך 🙂"
+        "רק רציתי לוודא שקיבלת את המייל הקודם. אשמח לעדכון כשנוח לך 🙂",
     };
   }
 
@@ -50,7 +48,7 @@
     const res = await fetch(`${BASE_URL}/analyze-before-send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
     return handleResponse(res);
   }
@@ -64,7 +62,7 @@
     const res = await fetch(`${BASE_URL}/analyze-follow-up`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email_body, days_passed })
+      body: JSON.stringify({ email_body, days_passed }),
     });
     return handleResponse(res);
   }
@@ -77,6 +75,13 @@
   let lastResult = null;
   let currentComposeContext = null;
   let applyHandlers = null;
+
+  function closePanel() {
+    if (!panelRoot) return;
+    panelRoot.style.display = "none";
+    lastResult = null;
+    currentComposeContext = null;
+  }
 
   function createPanel() {
     if (panelRoot) return panelRoot;
@@ -176,10 +181,10 @@
 
     document.body.appendChild(panelRoot);
 
-    // כפתור סגירה
+    // סגירת X
     panelRoot.querySelector(".ai-guard-close-btn").onclick = closePanel;
 
-    // טאב Before
+    // טאבס
     const tabBefore = panelRoot.querySelector(".ai-tab-before");
     const tabFollow = panelRoot.querySelector(".ai-tab-follow");
     const contentBefore = panelRoot.querySelector(".ai-tab-content-before");
@@ -192,7 +197,6 @@
       contentFollow.style.display = "none";
     };
 
-    // טאב Follow
     tabFollow.onclick = () => {
       tabFollow.classList.add("active");
       tabBefore.classList.remove("active");
@@ -207,7 +211,7 @@
         body: panelRoot.querySelector(".ai-input-body").value || "",
         language: "auto",
         is_reply: !!currentComposeContext?.isReply,
-        thread_context: currentComposeContext?.thread_context || null
+        thread_context: currentComposeContext?.thread_context || null,
       };
 
       if (!payload.body.trim()) {
@@ -221,81 +225,71 @@
       resultBox.style.display = "none";
       applyBtn.disabled = true;
 
-const data = await new Promise((resolve, reject) => {
-  chrome.runtime.sendMessage(
-    { action: "analyzeBeforeSend", payload },
-    (response) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(response);
-      }
-    }
-  );
-});
-      lastResult = data;
+      try {
+        const data = await analyzeBeforeSend(payload);
+        lastResult = data;
 
-      resultBox.style.display = "block";
+        resultBox.style.display = "block";
 
-      // ==== Thread timeline ====
-      const threadCard = panelRoot.querySelector(".ai-thread-card");
-      const threadContainer = panelRoot.querySelector(".ai-thread-container");
+        // Thread timeline
+        const threadCard = panelRoot.querySelector(".ai-thread-card");
+        const threadContainer = panelRoot.querySelector(".ai-thread-container");
 
-      if (currentComposeContext?.thread_context?.length) {
-        threadCard.style.display = "block";
-        threadContainer.innerHTML = "";
+        if (currentComposeContext?.thread_context?.length) {
+          threadCard.style.display = "block";
+          threadContainer.innerHTML = "";
 
-        currentComposeContext.thread_context.forEach((msg) => {
-          const div = document.createElement("div");
-          div.className = "ai-tl-item";
-          div.innerHTML = `
-            <div class="ai-tl-author">
-              ${msg.author === "me" ? "אני" : "הוא/היא"}:
-            </div>
-            <div class="ai-tl-text">${msg.text}</div>
-          `;
-          threadContainer.appendChild(div);
+          currentComposeContext.thread_context.forEach((msg) => {
+            const div = document.createElement("div");
+            div.className = "ai-tl-item";
+            div.innerHTML = `
+              <div class="ai-tl-author">
+                ${msg.author === "me" ? "אני" : "הוא/היא"}:
+              </div>
+              <div class="ai-tl-text">${msg.text}</div>
+            `;
+            threadContainer.appendChild(div);
+          });
+        } else {
+          threadCard.style.display = "none";
+        }
+
+        // Risk badge
+        const riskBadge = panelRoot.querySelector(".ai-risk-badge");
+        riskBadge.textContent = data.risk_level || "";
+        riskBadge.className = "ai-badge ai-risk-badge";
+        if (data.risk_level === "low") riskBadge.classList.add("ai-badge-low");
+        else if (data.risk_level === "medium")
+          riskBadge.classList.add("ai-badge-medium");
+        else if (data.risk_level === "high")
+          riskBadge.classList.add("ai-badge-high");
+
+        panelRoot.querySelector(".ai-field-intent").textContent =
+          data.intent || "";
+
+        const ul = panelRoot.querySelector(".ai-field-risk-factors");
+        ul.innerHTML = "";
+        (data.risk_factors || []).forEach((f) => {
+          const li = document.createElement("li");
+          li.textContent = f;
+          ul.appendChild(li);
         });
-      } else {
-        threadCard.style.display = "none";
+
+        panelRoot.querySelector(".ai-field-recipient").textContent =
+          data.recipient_interpretation || "";
+        panelRoot.querySelector(".ai-field-decision").textContent =
+          data.send_decision || "";
+        panelRoot.querySelector(".ai-field-safer-subject").textContent =
+          data.safer_subject || "";
+        panelRoot.querySelector(".ai-field-safer-body").textContent =
+          data.safer_body || "";
+
+        applyBtn.disabled = false;
+      } catch (e) {
+        console.error(e);
+        alert("שגיאה בניתוח השרת: " + e.message);
+        applyBtn.disabled = false;
       }
-
-      // ==== Risk badge ====
-      const riskBadge = panelRoot.querySelector(".ai-risk-badge");
-      riskBadge.textContent = data.risk_level || "";
-      riskBadge.className = "ai-badge ai-risk-badge";
-      if (data.risk_level === "low") riskBadge.classList.add("ai-badge-low");
-      else if (data.risk_level === "medium") riskBadge.classList.add("ai-badge-medium");
-      else if (data.risk_level === "high") riskBadge.classList.add("ai-badge-high");
-
-      // intent
-      panelRoot.querySelector(".ai-field-intent").textContent =
-        data.intent || "";
-
-      // risk factors
-      const ul = panelRoot.querySelector(".ai-field-risk-factors");
-      ul.innerHTML = "";
-      (data.risk_factors || []).forEach((f) => {
-        const li = document.createElement("li");
-        li.textContent = f;
-        ul.appendChild(li);
-      });
-
-      // recipient interpretation
-      panelRoot.querySelector(".ai-field-recipient").textContent =
-        data.recipient_interpretation || "";
-
-      // decision
-      panelRoot.querySelector(".ai-field-decision").textContent =
-        data.send_decision || "";
-
-      // safer subject/body
-      panelRoot.querySelector(".ai-field-safer-subject").textContent =
-        data.safer_subject || "";
-      panelRoot.querySelector(".ai-field-safer-body").textContent =
-        data.safer_body || "";
-
-      applyBtn.disabled = false;
     };
 
     // APPLY SAFE VERSION
@@ -308,7 +302,8 @@ const data = await new Promise((resolve, reject) => {
     // FOLLOW UP
     panelRoot.querySelector(".ai-btn-analyze-follow").onclick = async () => {
       const body = panelRoot.querySelector(".ai-input-follow-body").value || "";
-      const days = Number(panelRoot.querySelector(".ai-input-days").value) || 3;
+      const days =
+        Number(panelRoot.querySelector(".ai-input-days").value) || 3;
 
       if (!body.trim()) {
         alert("צריך גוף מייל שנשלח");
@@ -318,16 +313,22 @@ const data = await new Promise((resolve, reject) => {
       const box = panelRoot.querySelector(".ai-result-follow");
       box.style.display = "none";
 
-      const data = await analyzeFollowUp(body, days);
+      try {
+        const data = await analyzeFollowUp(body, days);
 
-      box.style.display = "block";
-      panelRoot.querySelector(".ai-field-needs-follow").textContent =
-        data.needs_follow_up ? "כן" : "לא";
-      panelRoot.querySelector(".ai-field-urgency").textContent = data.urgency;
-      panelRoot.querySelector(".ai-field-reason").textContent =
-        data.follow_up_reason;
-      panelRoot.querySelector(".ai-field-follow-body").textContent =
-        data.suggested_follow_up;
+        box.style.display = "block";
+        panelRoot.querySelector(".ai-field-needs-follow").textContent =
+          data.needs_follow_up ? "כן" : "לא";
+        panelRoot.querySelector(".ai-field-urgency").textContent =
+          data.urgency || "";
+        panelRoot.querySelector(".ai-field-reason").textContent =
+          data.follow_up_reason || "";
+        panelRoot.querySelector(".ai-field-follow-body").textContent =
+          data.suggested_follow_up || "";
+      } catch (e) {
+        console.error(e);
+        alert("שגיאה בניתוח Follow-Up: " + e.message);
+      }
     };
 
     return panelRoot;
@@ -340,24 +341,12 @@ const data = await new Promise((resolve, reject) => {
     const panel = createPanel();
     panel.style.display = "block";
 
-    // נושא
     panel.querySelector(".ai-input-subject").value =
       composeContext.subject || "";
-
-    // גוף המייל (כאן פתרנו שהטקסט יופיע)
     panel.querySelector(".ai-input-body").value =
       composeContext.body || "";
-
-    // בטאב follow-up – ברירת מחדל אותו גוף
     panel.querySelector(".ai-input-follow-body").value =
       composeContext.body || "";
-  }
-
-  function closePanel() {
-    if (!panelRoot) return;
-    panelRoot.style.display = "none";
-    lastResult = null;
-    currentComposeContext = null;
   }
 
   window.AIGuardUI = { openPanel, closePanel };
