@@ -3,7 +3,7 @@
   const BASE_URL = "http://127.0.0.1:8000";
 
   // 👇 שליטה: true = עובד במצב MOCK בלי קריאות API אמיתיות
-  const MOCK_MODE = true;
+  const MOCK_MODE = false;
 
   // ============================================================
   // API WRAPPERS
@@ -221,7 +221,18 @@
       resultBox.style.display = "none";
       applyBtn.disabled = true;
 
-      const data = await analyzeBeforeSend(payload);
+const data = await new Promise((resolve, reject) => {
+  chrome.runtime.sendMessage(
+    { action: "analyzeBeforeSend", payload },
+    (response) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(response);
+      }
+    }
+  );
+});
       lastResult = data;
 
       resultBox.style.display = "block";

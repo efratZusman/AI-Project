@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.routes.before_send import router as before_send_router
-from backend.routes.follow_up import router as follow_up_router
+# from backend.routes.follow_up import router as follow_up_router
 
 app = FastAPI(
     title="AI Communication Guard",
@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 app.include_router(before_send_router)
-app.include_router(follow_up_router)
+# app.include_router(follow_up_router)
 
 
 @app.get("/health")
