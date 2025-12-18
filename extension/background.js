@@ -8,14 +8,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       body: JSON.stringify(message.payload),
     })
       .then(async (res) => {
-        const data = await res.json();
+        let data = null;
+        try {
+          data = await res.json();
+        } catch (e) {
+          return sendResponse({ error: "BAD_JSON_FROM_SERVER", message: String(e) });
+        }
         sendResponse(data);
       })
       .catch((err) => {
         sendResponse({ error: "FETCH_FAILED", message: err?.message || String(err) });
       });
 
-    return true; // keep channel open
+    return true;
   }
 
   return false;

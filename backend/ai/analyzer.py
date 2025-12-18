@@ -1,106 +1,81 @@
-# backend/ai/analyzer.py
 # -*- coding: utf-8 -*-
 
+import logging
 from typing import Optional, List, Tuple
 from backend.ai.lexicon import LEXICON
 from backend.ai.ai import generate_structured_json
 from backend.ai.prompts import BEFORE_SEND_SCHEMA, build_before_send_prompt
 from backend.models import ThreadMessage
-import re
 
-# -----------------------
-# Utils
-# -----------------------
+logger = logging.getLogger("analyzer")
 
 def detect_lang(text: str, language: str) -> str:
     if language in ("he", "en"):
         return language
-    return "he" if any("\u0590" <= ch <= "\u05EA" for ch in text) else "en"
+    return "he" if any("\u0590" <= ch <= "\u05EA" for ch in (text or "")) else "en"
 
+def risk_bucket(score: int) -> str:
+    if score <= 1:
+        return "low"
+    if score <= 6:
+        return "medium"
+    return "high"
 
 def base_response(body: str, lang: str) -> dict:
     return {
         "intent": "העברת מסר מקצועי" if lang == "he" else "Professional message",
         "risk_level": "low",
         "risk_factors": [],
-        "recipient_interpretation": "ההודעה תיתפס כעניינית.",
+        "recipient_interpretation": "ההודעה תיתפס כעניינית." if lang == "he" else "The message will be perceived as professional.",
         "send_decision": "send_as_is",
         "follow_up_needed": False,
         "follow_up_reason": "",
         "safer_subject": None,
-        "safer_body": body,
+        "safer_body": body,  # תמיד גוף קיים (כדי שה-UI לא יישבר)
         "notes_for_sender": [],
-        "analysis_layer": "local",
+        # סטטוס AI – תמיד קיים (הפרדה מוחלטת!)
+        "ai_ok": True,
+        "ai_error_code": None,
+        "ai_error_message": None,
+        "analysis_layer": "lexicon",
     }
 
-
-# -----------------------
-# Layer A – Lexicon Gate
-# -----------------------
-
-def quick_risk_score(
-    text: str,
-    lang: str,
-    is_reply: bool,
-) -> Tuple[int, List[str]]:
-
-    if not text.strip():
+def quick_risk_score(text: str, lang: str, is_reply: bool) -> Tuple[int, List[str]]:
+    if not (text or "").strip():
         return 0, []
 
     lex = LEXICON.get(lang, LEXICON["he"])
     t = text.lower()
     score = 0
-    reasons = []
+    reasons: List[str] = []
 
     if any(m in text for m in lex["escalation_signs"]):
         score += 2
-        reasons.append("סימני הסלמה")
+        reasons.append("סימני הסלמה" if lang == "he" else "Escalation signs")
 
     for p in lex["insult_phrases"]:
         if p.lower() in t:
             score += 8
-            reasons.append("שפה פוגענית")
+            reasons.append("שפה פוגענית" if lang == "he" else "Insulting language")
 
     for w in lex["pressure_phrases"]:
         if w.lower() in t:
             score += 3
-            reasons.append("לחץ")
+            reasons.append("לחץ" if lang == "he" else "Pressure")
 
     for w in lex["accusation_phrases"]:
         if w.lower() in t:
             score += 3
-            reasons.append("האשמה")
+            reasons.append("האשמה" if lang == "he" else "Accusation")
 
+    # reply = יותר “טעון” בהקשר
     if is_reply:
         score += 2
-        reasons.append("תגובה בשרשור")
+        reasons.append("תגובה בשרשור" if lang == "he" else "Reply in thread")
 
-    return score, list(set(reasons))
-
-
-# -----------------------
-# Emergency fallback
-# -----------------------
-
-def emergency_soften(body: str, lang: str) -> str:
-    text = body.strip()
-
-    if lang == "he":
-        text = re.sub(r"!{2,}", "!", text)
-        text = re.sub(r"\bאני שונאת אותך\b", "אני מאוד נסערת מהמצב", text)
-        if "אשמח" not in text:
-            text += "\n\nאשמח שנוכל להתקדם בצורה עניינית."
-    else:
-        text = re.sub(r"!{2,}", "!", text)
-        if "please" not in text.lower():
-            text += "\n\nI’d like us to move forward constructively."
-
-    return text
-
-
-# -----------------------
-# MAIN ENTRY
-# -----------------------
+    # להסיר כפילויות
+    reasons = list(dict.fromkeys(reasons))
+    return score, reasons
 
 def analyze_before_send(
     subject: Optional[str],
@@ -110,34 +85,57 @@ def analyze_before_send(
     thread_context: Optional[List[ThreadMessage]] = None,
 ):
     lang = detect_lang(body, language)
+    res = base_response(body, lang)
 
-    # -------- Layer A: Lexicon --------
+    # -------- Layer A: Lexicon Gate --------
     score, reasons = quick_risk_score(body, lang, is_reply)
+    res["risk_level"] = risk_bucket(score)
+    res["risk_factors"] = reasons
 
-    if score == 0:
-        return base_response(body, lang)
+    # כלל חכם: אם אין סימנים בכלל וגם לא reply → לא שולחים לג׳מיני
+    must_check = (score >= 2) or bool(is_reply and thread_context)
 
-    # -------- Layer B: Gemini --------
-    result = generate_structured_json(
-        build_before_send_prompt(
-            body=body,
-            subject=subject,
-            language=lang,
-            is_reply=is_reply,
-            thread_context=thread_context,
-        ),
-        BEFORE_SEND_SCHEMA,
+    logger.info(
+        "Gate decision: lang=%s score=%s is_reply=%s must_check=%s",
+        lang, score, is_reply, must_check
     )
 
-    if result.get("error"):
-        return {
-            **base_response(body, lang),
-            "risk_level": "high",
-            "risk_factors": [f"כשל AI ({result.get('error')}) – הופעל ניסוח בטוח"],
-            "send_decision": "rewrite_recommended",
-            "safer_body": emergency_soften(body, lang),
-            "analysis_layer": "fallback",
-        }
+    if not must_check:
+        res["analysis_layer"] = "lexicon_only"
+        res["send_decision"] = "send_as_is"
+        return res
 
-    result["analysis_layer"] = "gemini"
-    return result
+    # אם יש רמזים – לפחות להזהיר מקומית (גם אם אין Gemini)
+    res["send_decision"] = "send_with_caution" if score < 7 else "rewrite_recommended"
+    res["analysis_layer"] = "lexicon_gate"
+
+    # -------- Layer B: Gemini Deep --------
+    prompt = build_before_send_prompt(
+        body=body,
+        subject=subject,
+        language=lang,
+        is_reply=is_reply,
+        thread_context=thread_context,
+    )
+
+    gem = generate_structured_json(prompt, BEFORE_SEND_SCHEMA)
+
+    if gem.get("error"):
+        # הפרדה מוחלטת: אין ניסוח “חירום” שממציא טקסט
+        res["ai_ok"] = False
+        res["ai_error_code"] = gem.get("error")
+        res["ai_error_message"] = gem.get("message") or ""
+        res["notes_for_sender"] = res.get("notes_for_sender", []) + [
+            ("אין חיבור ל‑Gemini כרגע. מוצגת אזהרה מקומית בלבד — ללא ניסוח מחדש."
+             if lang == "he" else
+             "Gemini is not available right now. Showing local warnings only — no rewrite.")
+        ]
+        # safer_body נשאר המקורי, וה-UI צריך לחסום Apply
+        return res
+
+    # Gemini תקין → מחזירים “אמיתי” + סטטוס ai_ok
+    gem["ai_ok"] = True
+    gem["ai_error_code"] = None
+    gem["ai_error_message"] = None
+    gem["analysis_layer"] = "gemini"
+    return gem

@@ -4,15 +4,6 @@ import json
 from typing import List, Optional
 from backend.models import ThreadMessage
 
-EMOTION_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "emotion": {"type": "string", "enum": ["neutral", "positive", "tense", "frustrated", "sensitive"]},
-        "confidence": {"type": "number", "description": "0..1"},
-    },
-    "required": ["emotion", "confidence"],
-}
-
 BEFORE_SEND_SCHEMA = {
     "type": "object",
     "properties": {
@@ -53,35 +44,6 @@ def render_thread(thread: Optional[List[ThreadMessage]]) -> str:
         out += f"- {who}: {snippet}\n"
     return out
 
-# ===== LAYER 2 =====
-def build_emotion_prompt(body: str, language: str = "auto") -> str:
-    reply_language = "Hebrew" if _is_hebrew(body) or language == "he" else "English"
-    return f"""
-You are an emotion classifier for email texts.
-
-Return ONLY JSON. No extra text.
-Do NOT judge politeness, intent, or correctness.
-Neutral professional disagreement is usually "neutral" (not "frustrated").
-
-Pick ONE emotion:
-- neutral
-- positive
-- tense
-- frustrated
-- sensitive
-
-Confidence is 0..1.
-
-Output language: {reply_language}
-
-Schema:
-{json.dumps(EMOTION_SCHEMA, ensure_ascii=False)}
-
-Email body:
-\"\"\"{body}\"\"\"
-"""
-
-# ===== LAYER 3 =====
 def build_before_send_prompt(
     body: str,
     subject: Optional[str],
@@ -101,7 +63,8 @@ Goal:
 - Make it firm but respectful and collaborative.
 - Always provide a rewritten safer_body.
 
-IMPORTANT (hard rules):
+Hard rules:
+- Return ONLY valid JSON. No markdown. No explanations.
 - NEVER include the thread / quoted emails / "On ... wrote:" / "Forwarded message" / lines starting with ">" inside safer_body.
 - safer_body must contain ONLY the rewritten message the sender will send now.
 - Do NOT copy any of the thread text into safer_body.
@@ -124,11 +87,3 @@ Email subject:
 Email body to rewrite:
 \"\"\"{body}\"\"\"
 """
-
-__all__ = [
-    "EMOTION_SCHEMA",
-    "BEFORE_SEND_SCHEMA",
-    "build_emotion_prompt",
-    "build_before_send_prompt",
-    "render_thread",
-]
