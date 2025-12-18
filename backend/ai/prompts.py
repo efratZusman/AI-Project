@@ -1,23 +1,14 @@
-# backend/ai/prompts.py
 # -*- coding: utf-8 -*-
 
 import json
 from typing import List, Optional
 from backend.models import ThreadMessage
 
-# ====== SCHEMAS ======
-
 EMOTION_SCHEMA = {
     "type": "object",
     "properties": {
-        "emotion": {
-            "type": "string",
-            "enum": ["neutral", "positive", "tense", "frustrated", "sensitive"],
-        },
-        "confidence": {
-            "type": "number",
-            "description": "0 to 1",
-        },
+        "emotion": {"type": "string", "enum": ["neutral", "positive", "tense", "frustrated", "sensitive"]},
+        "confidence": {"type": "number", "description": "0..1"},
     },
     "required": ["emotion", "confidence"],
 }
@@ -26,10 +17,10 @@ BEFORE_SEND_SCHEMA = {
     "type": "object",
     "properties": {
         "intent": {"type": "string"},
-        "risk_level": {"type": "string"},  # low/medium/high
+        "risk_level": {"type": "string", "enum": ["low", "medium", "high"]},
         "risk_factors": {"type": "array", "items": {"type": "string"}},
         "recipient_interpretation": {"type": "string"},
-        "send_decision": {"type": "string"},  # send_as_is / send_with_caution / rewrite_recommended
+        "send_decision": {"type": "string", "enum": ["send_as_is", "send_with_caution", "rewrite_recommended"]},
         "follow_up_needed": {"type": "boolean"},
         "follow_up_reason": {"type": "string"},
         "safer_subject": {"type": "string"},
@@ -51,59 +42,46 @@ def _is_hebrew(text: str) -> bool:
     return any("\u0590" <= ch <= "\u05EA" for ch in (text or ""))
 
 def render_thread(thread: Optional[List[ThreadMessage]]) -> str:
-    """
-    מצמצם thread כדי לא לפוצץ פרומפט:
-    - שומר רק טקסטים קצרים
-    - בלי מטא "On Wed..." אם מופיע (היינו רואים את זה בג׳ימייל)
-    """
     if not thread:
-        return ""
-
-    out = "Conversation thread (older -> newer):\n"
-    for msg in thread:
+        return "(no prior thread)"
+    out = "Conversation thread (for context only; DO NOT copy into output):\n"
+    for msg in thread[-3:]:
         who = "Sender" if msg.author == "me" else "Recipient"
         snippet = (msg.text or "").strip().replace("\n", " ")
-        # ניקוי שורות "On ... wrote:" שמגיעות מציטוטים
-        snippet = snippet.replace("wrote:", "").replace("On ", "")
-        if len(snippet) > 220:
-            snippet = snippet[:220] + "..."
+        if len(snippet) > 240:
+            snippet = snippet[:240] + "..."
         out += f"- {who}: {snippet}\n"
     return out
 
-# ====== LAYER 2 (EMOTION) PROMPT ======
-
+# ===== LAYER 2 =====
 def build_emotion_prompt(body: str, language: str = "auto") -> str:
-    """
-    שכבה 2: סיווג רגשי חסכוני.
-    דגש: לא להיות מחמיר. “יש ביקורת” != frustrated בהכרח.
-    """
     reply_language = "Hebrew" if _is_hebrew(body) or language == "he" else "English"
-
     return f"""
-You are a lightweight emotion classifier for email texts.
+You are an emotion classifier for email texts.
 
-Return ONLY JSON.
-Do NOT give advice. Do NOT rewrite.
+Return ONLY JSON. No extra text.
+Do NOT judge politeness, intent, or correctness.
+Neutral professional disagreement is usually "neutral" (not "frustrated").
 
-Goal:
-- Identify the sender's dominant emotional tone.
+Pick ONE emotion:
+- neutral
+- positive
+- tense
+- frustrated
+- sensitive
 
-Important calibration:
-- Professional criticism can still be "neutral".
-- Use "frustrated" only when there is clear irritation/anger/blame.
-- Use "tense" when there is pressure/urgency or sharpness, but not full anger.
-- Use "sensitive" when topic is delicate (apology, bad news, personal/HR-like).
+Confidence is 0..1.
 
-Reply ONLY in {reply_language}.
-Return ONLY JSON with this schema:
+Output language: {reply_language}
+
+Schema:
 {json.dumps(EMOTION_SCHEMA, ensure_ascii=False)}
 
 Email body:
 \"\"\"{body}\"\"\"
 """
 
-# ====== LAYER 3 (FULL ANALYSIS) PROMPT ======
-
+# ===== LAYER 3 =====
 def build_before_send_prompt(
     body: str,
     subject: Optional[str],
@@ -112,50 +90,38 @@ def build_before_send_prompt(
     thread_context: Optional[List[ThreadMessage]],
 ) -> str:
     reply_language = "Hebrew" if _is_hebrew(body) or language == "he" else "English"
-    thread_block = render_thread(thread_context) if (is_reply and thread_context) else "(no prior thread given)"
+    thread_block = render_thread(thread_context) if (is_reply and thread_context) else "(no prior thread)"
 
     return f"""
 You are a communication coach (not a strict reviewer).
 
-PRIMARY OUTPUT GOAL:
-- Produce a safer rewrite of the CURRENT email (safer_body) that keeps the SAME intent,
-  but reduces friction, blame, and escalation risk.
+Goal:
+- Keep the SAME intent and key facts.
+- Reduce anger, blame, humiliation, and pressure.
+- Make it firm but respectful and collaborative.
+- Always provide a rewritten safer_body.
 
-CRITICAL RULES (must follow):
-1) safer_body must be ONLY the rewritten email body. Do NOT include:
-   - quoted previous emails
-   - "On Wed ... wrote" lines
-   - conversation context
-   - signatures you invent
-   - metadata or analysis text inside safer_body
-2) Always generate safer_body, even if risk is low.
-3) Keep it human, concise, and professional. Not robotic, not overly apologetic.
-4) Don't remove the request/goal. Soften tone, not substance.
+IMPORTANT (hard rules):
+- NEVER include the thread / quoted emails / "On ... wrote:" / "Forwarded message" / lines starting with ">" inside safer_body.
+- safer_body must contain ONLY the rewritten message the sender will send now.
+- Do NOT copy any of the thread text into safer_body.
+- Do NOT return the original body unchanged.
 
-If reply context exists, consider the dynamic (but do NOT copy it into safer_body):
+Risk rules:
+- low: normal professional tone.
+- medium: some tension/pressure; could be misread.
+- high: insults, humiliation, personal attack, threats, harsh blame.
+
+Conversation context (for understanding only):
 {thread_block}
 
-Tasks:
-- intent: 1 short sentence
-- risk_level: low / medium / high
-- risk_factors: concrete, specific triggers
-- recipient_interpretation: 1–2 sentences
-- send_decision:
-  - low -> send_as_is
-  - medium -> send_with_caution
-  - high -> rewrite_recommended
-- safer_subject: optional
-- safer_body: rewritten body (see rules)
-- notes_for_sender: 1–3 practical tips
-
-Reply ONLY in {reply_language}.
-Return ONLY valid JSON according to this schema:
+Return ONLY valid JSON in {reply_language} according to this schema:
 {json.dumps(BEFORE_SEND_SCHEMA, ensure_ascii=False)}
 
 Email subject:
 {subject or "No subject"}
 
-Email body:
+Email body to rewrite:
 \"\"\"{body}\"\"\"
 """
 

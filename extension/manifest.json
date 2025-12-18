@@ -1,19 +1,11 @@
 {
   "manifest_version": 3,
   "name": "AI Communication Guard",
-  "version": "0.1.0",
-  "description": "ניתוח טון + Follow-Up לפני שליחת מייל בג׳ימייל.",
-  "permissions": [
-    "scripting",
-    "activeTab"
-  ],
-  "host_permissions": [
-    "https://mail.google.com/*",
-    "http://127.0.0.1/*"
-  ],
-  "background": {
-    "service_worker": "background.js"
-  },
+  "version": "0.2.0",
+  "description": "Tone risk analysis before sending emails in Gmail.",
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": ["https://mail.google.com/*", "http://127.0.0.1/*"],
+  "background": { "service_worker": "background.js" },
   "content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
@@ -22,7 +14,5 @@
       "run_at": "document_idle"
     }
   ],
-  "action": {
-    "default_title": "AI Communication Guard"
-  }
+  "action": { "default_title": "AI Communication Guard" }
 }

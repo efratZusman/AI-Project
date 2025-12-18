@@ -1,4 +1,3 @@
-# backend/routes/before_send.py
 from fastapi import APIRouter
 from backend.ai.analyzer import analyze_before_send
 from backend.models import BeforeSendInput
