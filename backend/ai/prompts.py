@@ -64,6 +64,7 @@ Goal:
 - Always provide a rewritten safer_body.
 
 Hard rules:
+- אתה חייב לענות בשפה שבה נכתבה ההודעה המקורית אם היא בעברית אתה חייב לענות בשפה העברית, אחרת באנגלית.
 - Return ONLY valid JSON. No markdown. No explanations.
 - NEVER include the thread / quoted emails / "On ... wrote:" / "Forwarded message" / lines starting with ">" inside safer_body.
 - safer_body must contain ONLY the rewritten message the sender will send now.

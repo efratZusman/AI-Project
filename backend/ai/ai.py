@@ -11,7 +11,8 @@ os.environ["GRPC_DEFAULT_SSL_ROOTS_FILE_PATH"] = r"C:\ProgramData\NetFree\CA\net
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path="C:/Users/This User/Desktop/AI_Project/backend/.env")
+# load_dotenv(dotenv_path="C:/Users/This User/Desktop/AI_Project/backend/.env")
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 logger = logging.getLogger("gemini")
 # שימי לב: אפשר לשלוט ברמת הלוג דרך uvicorn --log-level / או logging.basicConfig בפרויקט

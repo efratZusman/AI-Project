@@ -1,3 +1,4 @@
+# backend/ai/analyzer.py
 # -*- coding: utf-8 -*-
 
 import logging
@@ -8,6 +9,10 @@ from backend.ai.prompts import BEFORE_SEND_SCHEMA, build_before_send_prompt
 from backend.models import ThreadMessage
 
 logger = logging.getLogger("analyzer")
+
+# --------------------------------------------------
+# Utils
+# --------------------------------------------------
 
 def detect_lang(text: str, language: str) -> str:
     if language in ("he", "en"):
@@ -26,21 +31,28 @@ def base_response(body: str, lang: str) -> dict:
         "intent": "העברת מסר מקצועי" if lang == "he" else "Professional message",
         "risk_level": "low",
         "risk_factors": [],
-        "recipient_interpretation": "ההודעה תיתפס כעניינית." if lang == "he" else "The message will be perceived as professional.",
+        "recipient_interpretation": (
+            "ההודעה תיתפס כעניינית."
+            if lang == "he"
+            else "The message will be perceived as professional."
+        ),
         "send_decision": "send_as_is",
         "follow_up_needed": False,
         "follow_up_reason": "",
         "safer_subject": None,
-        "safer_body": body,  # תמיד גוף קיים (כדי שה-UI לא יישבר)
+        "safer_body": body,
         "notes_for_sender": [],
-        # סטטוס AI – תמיד קיים (הפרדה מוחלטת!)
         "ai_ok": True,
         "ai_error_code": None,
         "ai_error_message": None,
         "analysis_layer": "lexicon",
     }
 
-def quick_risk_score(text: str, lang: str, is_reply: bool) -> Tuple[int, List[str]]:
+# --------------------------------------------------
+# Lexicon scoring
+# --------------------------------------------------
+
+def quick_risk_score(text: str, lang: str) -> Tuple[int, List[str]]:
     if not (text or "").strip():
         return 0, []
 
@@ -68,14 +80,49 @@ def quick_risk_score(text: str, lang: str, is_reply: bool) -> Tuple[int, List[st
             score += 3
             reasons.append("האשמה" if lang == "he" else "Accusation")
 
-    # reply = יותר “טעון” בהקשר
-    if is_reply:
-        score += 2
-        reasons.append("תגובה בשרשור" if lang == "he" else "Reply in thread")
+    return score, list(dict.fromkeys(reasons))
 
-    # להסיר כפילויות
-    reasons = list(dict.fromkeys(reasons))
-    return score, reasons
+# --------------------------------------------------
+# Explicit emotion detection
+# --------------------------------------------------
+
+def has_explicit_emotion(text: str, lang: str) -> bool:
+    lex = LEXICON.get(lang, LEXICON["he"])
+    t = text.lower()
+    for phrase in lex.get("explicit_emotion_phrases", []):
+        if phrase.lower() in t:
+            return True
+    return False
+
+# --------------------------------------------------
+# Thread structure analysis
+# --------------------------------------------------
+
+def analyze_thread_structure(thread: Optional[List[ThreadMessage]]) -> dict:
+    if not thread:
+        return {"mode": "no_thread", "consecutive_from_me": 0}
+
+    last_msgs = thread[-3:]
+    authors = [m.author for m in last_msgs]
+
+    consecutive = 0
+    for a in reversed(authors):
+        if a == "me":
+            consecutive += 1
+        else:
+            break
+
+    if all(a == "me" for a in authors):
+        return {"mode": "self_sequence", "consecutive_from_me": consecutive}
+
+    if "them" in authors and authors[-1] == "me":
+        return {"mode": "dialog", "consecutive_from_me": consecutive}
+
+    return {"mode": "no_thread", "consecutive_from_me": consecutive}
+
+# --------------------------------------------------
+# Main entry
+# --------------------------------------------------
 
 def analyze_before_send(
     subject: Optional[str],
@@ -87,29 +134,79 @@ def analyze_before_send(
     lang = detect_lang(body, language)
     res = base_response(body, lang)
 
-    # -------- Layer A: Lexicon Gate --------
-    score, reasons = quick_risk_score(body, lang, is_reply)
+    score, reasons = quick_risk_score(body, lang)
+    explicit_emotion = has_explicit_emotion(body, lang)
+
+    # ---------- רגש מפורש = סיכון מינימום medium ----------
+    if explicit_emotion:
+        score = max(score, 4)
+        res["intent"] = (
+            "הבעת תסכול / רגש"
+            if lang == "he"
+            else "Emotional expression / frustration"
+        )
+        res["risk_factors"] = reasons + [
+            "ביטוי רגשי ישיר" if lang == "he" else "Explicit emotional expression"
+        ]
+        res["recipient_interpretation"] = (
+            "ההודעה עלולה להיתפס כלחוצה או רגשית."
+            if lang == "he"
+            else "The message may be perceived as emotionally charged."
+        )
+    else:
+        res["risk_factors"] = reasons
+
     res["risk_level"] = risk_bucket(score)
-    res["risk_factors"] = reasons
 
-    # כלל חכם: אם אין סימנים בכלל וגם לא reply → לא שולחים לג׳מיני
-    must_check = (score >= 2) or bool(is_reply and thread_context)
-
-    logger.info(
-        "Gate decision: lang=%s score=%s is_reply=%s must_check=%s",
-        lang, score, is_reply, must_check
-    )
-
-    if not must_check:
-        res["analysis_layer"] = "lexicon_only"
+    # ---------- החלטת מערכת מקומית עקבית ----------
+    if res["risk_level"] == "low":
         res["send_decision"] = "send_as_is"
+    elif res["risk_level"] == "medium":
+        res["send_decision"] = "send_with_caution"
+        res["notes_for_sender"].append(
+            "ייתכן שכדאי לרכך מעט את הטון לפני שליחה."
+            if lang == "he"
+            else "You may want to slightly soften the tone before sending."
+        )
+    else:  # high
+        res["send_decision"] = "rewrite_recommended"
+        res["notes_for_sender"].append(
+            "הניסוח הנוכחי עלול להסלים את השיח."
+            if lang == "he"
+            else "The current wording may escalate the conversation."
+        )
+
+    # ---------- אין שרשור ואין סיכון ----------
+    if score == 0 and not explicit_emotion and not thread_context:
+        res["analysis_layer"] = "lexicon_only"
         return res
 
-    # אם יש רמזים – לפחות להזהיר מקומית (גם אם אין Gemini)
-    res["send_decision"] = "send_with_caution" if score < 7 else "rewrite_recommended"
-    res["analysis_layer"] = "lexicon_gate"
+    thread_info = analyze_thread_structure(thread_context)
+    mode = thread_info["mode"]
+    consecutive = thread_info["consecutive_from_me"]
 
-    # -------- Layer B: Gemini Deep --------
+    logger.info(
+        "Thread analysis: mode=%s consecutive=%s score=%s emotion=%s",
+        mode, consecutive, score, explicit_emotion
+    )
+
+    # ---------- רצף הודעות ממני ----------
+    if mode == "self_sequence":
+        res["analysis_layer"] = "self_sequence"
+        if consecutive >= 2 and res["risk_level"] != "low":
+            res["notes_for_sender"].append(
+                "נשלחו כמה הודעות ברצף — ייתכן שהנמען יחווה זאת כהצפה."
+                if lang == "he"
+                else "Multiple consecutive messages may feel overwhelming."
+            )
+        return res
+
+    # ---------- דיאלוג ----------
+    if mode == "dialog" and res["risk_level"] == "low":
+        res["analysis_layer"] = "dialog_no_ai"
+        return res
+
+    # ---------- Gemini ----------
     prompt = build_before_send_prompt(
         body=body,
         subject=subject,
@@ -121,21 +218,12 @@ def analyze_before_send(
     gem = generate_structured_json(prompt, BEFORE_SEND_SCHEMA)
 
     if gem.get("error"):
-        # הפרדה מוחלטת: אין ניסוח “חירום” שממציא טקסט
         res["ai_ok"] = False
         res["ai_error_code"] = gem.get("error")
         res["ai_error_message"] = gem.get("message") or ""
-        res["notes_for_sender"] = res.get("notes_for_sender", []) + [
-            ("אין חיבור ל‑Gemini כרגע. מוצגת אזהרה מקומית בלבד — ללא ניסוח מחדש."
-             if lang == "he" else
-             "Gemini is not available right now. Showing local warnings only — no rewrite.")
-        ]
-        # safer_body נשאר המקורי, וה-UI צריך לחסום Apply
+        res["analysis_layer"] = "gemini_failed"
         return res
 
-    # Gemini תקין → מחזירים “אמיתי” + סטטוס ai_ok
     gem["ai_ok"] = True
-    gem["ai_error_code"] = None
-    gem["ai_error_message"] = None
     gem["analysis_layer"] = "gemini"
     return gem
