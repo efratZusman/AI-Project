@@ -77,7 +77,6 @@
         <input class="ai-input ai-input-subject" />
         <label class="ai-label">גוף המייל</label>
         <textarea class="ai-textarea ai-input-body"></textarea>
-        <button class="ai-main-btn ai-btn-analyze-before">נתח</button>
         <button class="ai-secondary-btn ai-btn-apply" disabled>החל על הטיוטה</button>
 
         <div class="ai-result" style="display:none;">
@@ -226,10 +225,20 @@
   function openPanel(composeContext, handlers) {
     currentComposeContext = composeContext;
     applyHandlers = handlers;
+
     const panel = createPanel();
     panel.style.display = "block";
+
     panel.querySelector(".ai-input-subject").value = composeContext.subject || "";
     panel.querySelector(".ai-input-body").value = composeContext.body || "";
+
+    // ⏱️ ניתוח אוטומטי מיד עם פתיחת הפאנל
+    setTimeout(() => {
+      const analyzeBtn = panel.querySelector(".ai-btn-analyze-before");
+      if (analyzeBtn) {
+        analyzeBtn.click();
+      }
+    }, 0);
   }
 
   window.AIGuardUI = { openPanel, closePanel };
