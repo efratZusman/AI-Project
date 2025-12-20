@@ -1,105 +1,933 @@
+/* ============================================
+   AI Communication Guard - Enhanced Styles
+   עיצוב משופר עם אנימציות וחווית משתמש מודרנית
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap');
+
+/* ==================== פאנל ראשי ==================== */
 #ai-guard-panel {
   position: fixed;
   top: 60px;
   right: 24px;
-  width: 380px;
-  max-height: 80vh;
-  overflow: auto;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  width: 420px;
+  max-height: 85vh;
+  
+  /* עיצוב מודרני עם gradient עדין */
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 20px;
+  
+  /* Shadow עמוק יותר למראה מרחף */
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.08),
+    0 8px 16px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(148, 163, 184, 0.1);
+  
   z-index: 999999;
-  font-family: Arial, sans-serif;
+  font-family: 'Rubik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  direction: rtl;
+  
+  /* אנימציית כניסה חלקה */
+  animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+  
+  /* Backdrop blur למראה מודרני */
+  backdrop-filter: blur(8px);
+  
+  /* ✅ תיקון - מבנה גלילה נכון */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* ==================== Header ==================== */
 .ai-guard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 12px 6px 12px;
-  border-bottom: 1px solid #eee;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.6) 100%);
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
 }
 
-.ai-guard-title { font-weight: 700; }
+.ai-guard-title {
+  font-weight: 700;
+  font-size: 18px;
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
 
 .ai-guard-close-btn {
   border: none;
+  background: rgba(148, 163, 184, 0.1);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 20px;
+  cursor: pointer;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ai-guard-close-btn:hover {
+  background: rgba(148, 163, 184, 0.2);
+  transform: scale(1.05);
+  color: #475569;
+}
+
+.ai-guard-close-btn:active {
+  transform: scale(0.95);
+}
+
+/* ==================== אזור גלילה ✅ ==================== */
+.ai-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 16px;
+}
+
+/* סגנון scrollbar מותאם */
+.ai-tab-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-tab-content::-webkit-scrollbar-track {
   background: transparent;
-  font-size: 22px;
-  cursor: pointer;
 }
 
+.ai-tab-content::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 10px;
+}
+
+.ai-tab-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* ==================== Subtitle ==================== */
 .ai-guard-subtitle {
-  padding: 8px 12px 0 12px;
-  font-size: 12px;
-  color: #444;
+  padding: 16px 24px 12px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.6;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.5) 0%, transparent 100%);
 }
 
-.ai-label {
-  display: block;
-  padding: 10px 12px 4px 12px;
+.ai-ai-status {
+  margin-top: 8px;
+  padding: 8px 12px;
   font-size: 12px;
-  color: #333;
-}
-
-.ai-input, .ai-textarea {
-  width: calc(100% - 24px);
-  margin: 0 12px;
-  padding: 8px;
-  border: 1px solid #e5e7eb;
   border-radius: 10px;
-  box-sizing: border-box;
+  font-weight: 500;
+  display: inline-block;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.ai-textarea { min-height: 110px; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
+/* ==================== כפתורים ==================== */
 .ai-main-btn, .ai-secondary-btn {
-  margin: 10px 12px;
-  padding: 10px;
-  border-radius: 10px;
+  margin: 12px 24px;
+  padding: 14px 20px;
+  border-radius: 12px;
   cursor: pointer;
-  width: calc(100% - 24px);
+  width: calc(100% - 48px);
   border: none;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  font-family: 'Rubik', sans-serif;
 }
 
-.ai-main-btn { background: #1a73e8; color: white; font-weight: 700; }
-.ai-secondary-btn { background: #f3f4f6; color: #111; }
+/* כפתור ראשי - עם gradient אנימטיבי */
+.ai-main-btn {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  color: white;
+  box-shadow: 
+    0 4px 12px rgba(37, 99, 235, 0.2),
+    0 2px 4px rgba(37, 99, 235, 0.1);
+}
 
-.ai-result { padding: 10px 12px; }
+.ai-main-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
 
+.ai-main-btn:hover::before {
+  left: 100%;
+}
+
+.ai-main-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 20px rgba(37, 99, 235, 0.3),
+    0 4px 8px rgba(37, 99, 235, 0.15);
+}
+
+.ai-main-btn:active {
+  transform: translateY(0);
+}
+
+.ai-main-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* כפתור משני */
+.ai-secondary-btn {
+  background: white;
+  color: #1e293b;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.ai-secondary-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04);
+}
+
+.ai-secondary-btn:active {
+  transform: translateY(0);
+}
+
+/* כפתור נתח מחדש */
+.ai-btn-reanalyze {
+  margin-top: 16px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+}
+
+.ai-btn-reanalyze:hover {
+  box-shadow: 
+    0 8px 20px rgba(139, 92, 246, 0.3),
+    0 4px 8px rgba(139, 92, 246, 0.15);
+}
+
+/* ==================== Loading ==================== */
+.ai-loading {
+  padding: 40px 24px;
+  text-align: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.ai-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(226, 232, 240, 0.3);
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  margin: 0 auto 16px;
+  filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.2));
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-loading div:last-child {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ==================== תוצאות הניתוח ==================== */
+.ai-result {
+  padding: 16px 24px 24px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* כרטיסיות - עם אנימציה מדורגת */
 .ai-card {
-  border: 1px solid #eee;
-  border-radius: 12px;
-  padding: 10px;
-  margin-bottom: 10px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 14px;
+  background: white;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.02),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideUp 0.4s ease-out backwards;
+}
+
+/* אנימציה מדורגת לכרטיסיות */
+.ai-card:nth-child(1) { animation-delay: 0.05s; }
+.ai-card:nth-child(2) { animation-delay: 0.1s; }
+.ai-card:nth-child(3) { animation-delay: 0.15s; }
+.ai-card:nth-child(4) { animation-delay: 0.2s; }
+.ai-card:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-card:hover {
+  border-color: rgba(148, 163, 184, 0.4);
+  box-shadow: 
+    0 8px 20px rgba(0, 0, 0, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.02);
+  transform: translateY(-2px);
+}
+
+.ai-card h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-card p, .ai-card li {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.ai-card ul {
+  margin: 4px 0 0 0;
+  padding-right: 20px;
+}
+
+.ai-card li {
+  margin-bottom: 6px;
+}
+
+/* איקונים */
+.ai-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+/* ==================== Badges ==================== */
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 8px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* סיכון נמוך */
+.ai-badge-low {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+/* סיכון בינוני */
+.ai-badge-medium {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+
+/* סיכון גבוה */
+.ai-badge-high {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* ==================== Rewrite Box ==================== */
+.ai-rewrite-card {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid #93c5fd;
 }
 
 .ai-rewrite-box {
   white-space: pre-wrap;
-  background: #fafafa;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px dashed #ddd;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #334155;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.ai-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  margin-right: 8px;
+.ai-rewrite-box:hover {
+  border-color: #94a3b8;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.ai-badge-low { background: #e6f4ea; }
-.ai-badge-medium { background: #fff7e6; }
-.ai-badge-high { background: #fce8e6; }
-
-.ai-guard-trigger-btn {
-  margin-left: 8px;
+/* כפתור העתקה */
+.ai-copy-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   padding: 6px 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  background: #fff;
+  font-size: 12px;
   cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
+
+.ai-copy-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.ai-copy-btn.copied {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+/* ==================== Progress Bar ==================== */
+.ai-progress-container {
+  height: 3px;
+  background: rgba(226, 232, 240, 0.5);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0 24px 16px;
+}
+
+.ai-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ==================== Risk Meter ==================== */
+.ai-risk-meter {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  margin: 12px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-risk-meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
+  position: relative;
+}
+
+.ai-risk-meter-fill.low {
+  background: linear-gradient(90deg, #22c55e, #10b981);
+  width: 33%;
+}
+
+.ai-risk-meter-fill.medium {
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+  width: 66%;
+}
+
+.ai-risk-meter-fill.high {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  width: 100%;
+  animation: pulse 2s infinite;
+}
+
+/* ==================== Settings & Theme Toggle ==================== */
+.ai-settings-btn {
+  position: absolute;
+  top: 20px;
+  left: 60px;
+  background: rgba(148, 163, 184, 0.1);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 16px;
+}
+
+.ai-settings-btn:hover {
+  background: rgba(148, 163, 184, 0.2);
+  transform: rotate(45deg);
+}
+
+/* תפריט הגדרות */
+.ai-settings-menu {
+  position: absolute;
+  top: 60px;
+  left: 24px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  display: none;
+  z-index: 10;
+  min-width: 200px;
+}
+
+.ai-settings-menu.open {
+  display: block;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.ai-settings-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.ai-settings-item:hover {
+  background: #f8fafc;
+}
+
+/* Toggle switch */
+.ai-toggle {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  background: #cbd5e1;
+  border-radius: 999px;
+  transition: background 0.2s;
+  cursor: pointer;
+  margin-right: auto;
+}
+
+.ai-toggle.active {
+  background: #3b82f6;
+}
+
+.ai-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.ai-toggle.active::after {
+  transform: translateX(-18px);
+}
+
+/* ==================== היסטוריה ==================== */
+.ai-history-btn {
+  position: absolute;
+  top: 20px;
+  left: 100px;
+  background: rgba(148, 163, 184, 0.1);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 16px;
+}
+
+.ai-history-btn:hover {
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.ai-history-panel {
+  position: absolute;
+  top: 60px;
+  left: 24px;
+  right: 24px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  display: none;
+  z-index: 10;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.ai-history-panel.open {
+  display: block;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.ai-history-item {
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-history-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.ai-history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.ai-history-item-time {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.ai-history-item-subject {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.ai-history-item-preview {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==================== כפתור Trigger בGmail ==================== */
+.ai-guard-trigger-btn {
+  all: unset;
+  box-sizing: border-box;
+  margin-left: 8px;
+  padding: 8px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  position: relative;
+  z-index: 9999;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Rubik', sans-serif;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.ai-guard-trigger-btn::before {
+  content: '✨';
+  margin-left: 6px;
+  font-size: 14px;
+}
+
+.ai-guard-trigger-btn:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%) !important;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    0 2px 4px rgba(0, 0, 0, 0.04) !important;
+}
+
+.ai-guard-trigger-btn:active {
+  transform: translateY(0);
+}
+
+.ai-guard-trigger-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* ביטול אפקטים של Gmail */
+.ai-guard-trigger-btn:hover,
+.ai-guard-trigger-btn:focus,
+.ai-guard-trigger-btn:active {
+  isolation: isolate;
+}
+
+.ai-guard-trigger-btn::after {
+  display: none !important;
+}
+
+/* ==================== Dark Mode ==================== */
+body.ai-dark-mode #ai-guard-panel {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-color: rgba(71, 85, 105, 0.4);
+}
+
+body.ai-dark-mode .ai-guard-header {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.9) 0%, rgba(30, 41, 59, 0.6) 100%);
+  border-bottom-color: rgba(71, 85, 105, 0.4);
+}
+
+body.ai-dark-mode .ai-guard-title {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.ai-dark-mode .ai-card {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(71, 85, 105, 0.4);
+}
+
+body.ai-dark-mode .ai-card h4 {
+  color: #f1f5f9;
+}
+
+body.ai-dark-mode .ai-card p,
+body.ai-dark-mode .ai-card li {
+  color: #cbd5e1;
+}
+
+body.ai-dark-mode .ai-rewrite-box {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(71, 85, 105, 0.5);
+  color: #e2e8f0;
+}
+
+body.ai-dark-mode .ai-secondary-btn {
+  background: rgba(30, 41, 59, 0.8);
+  color: #f1f5f9;
+  border-color: rgba(71, 85, 105, 0.5);
+}
+
+body.ai-dark-mode .ai-settings-menu,
+body.ai-dark-mode .ai-history-panel {
+  background: #1e293b;
+  border-color: rgba(71, 85, 105, 0.5);
+}
+
+body.ai-dark-mode .ai-settings-item:hover,
+body.ai-dark-mode .ai-history-item:hover {
+  background: rgba(51, 65, 85, 0.5);
+}
+
+/* ==================== Responsive ==================== */
+@media (max-width: 768px) {
+  #ai-guard-panel {
+    width: calc(100vw - 32px);
+    right: 16px;
+    left: 16px;
+    max-height: 90vh;
+  }
+}
+
+/* ==================== Accessibility ==================== */
+.ai-guard-trigger-btn:focus-visible,
+.ai-main-btn:focus-visible,
+.ai-secondary-btn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* ==================== Toast התראות ==================== */
+.ai-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1000000;
+  animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 400px;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-toast.success {
+  border-color: #86efac;
+  background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%);
+}
+
+.ai-toast.error {
+  border-color: #fca5a5;
+  background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+}
+
+.ai-toast.info {
+  border-color: #93c5fd;
+  background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+}
+
+.ai-toast-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.ai-toast-message {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+/* ==================== Tooltip ==================== */
+.ai-tooltip {
+  position: absolute;
+  background: #1e293b;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000001;
+  white-space: nowrap;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.ai-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1e293b;
+}
+
+#ai-guard-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  overflow: hidden;
+}
+
+.ai-tab-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* ⭐ זה התיקון הקריטי */
+}
+/* ✅ FORCE SCROLL – Gmail Safe */
+#ai-guard-panel {
+  height: 85vh;        /* לא max-height */
+  max-height: 85vh;
+}
+
+.ai-tab-content {
+  height: calc(85vh - 90px); /* גובה הפאנל פחות header */
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  min-height: 0;
+}
+#ai-guard-panel * {
+  box-sizing: border-box;
+}
+
+.ai-tab-content {
+  overscroll-behavior: contain;
+}
+.ai-tab-content {
+  scroll-behavior: smooth;
+}
+

@@ -1,6 +1,67 @@
 (function () {
   const MOCK_MODE = false;
+  const THEME_KEY = 'ai_guard_theme';
 
+  // ===============================
+  // 🎨 Theme Management (Dark Mode)
+  // ===============================
+  function loadTheme() {
+    const theme = localStorage.getItem(THEME_KEY) || 'light';
+    if (theme === 'dark') {
+      document.body.classList.add('ai-dark-mode');
+    }
+    return theme;
+  }
+
+  function toggleTheme() {
+    const isDark = document.body.classList.toggle('ai-dark-mode');
+    localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
+    showToast(isDark ? '🌙 מצב כהה הופעל' : '☀️ מצב בהיר הופעל', 'info');
+  }
+
+  // ===============================
+  // 🔔 Toast Notifications
+  // ===============================
+  function showToast(message, type = 'info', duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = `ai-toast ${type}`;
+    
+    const icons = {
+      success: '✅',
+      error: '❌',
+      info: 'ℹ️',
+      warning: '⚠️'
+    };
+    
+    toast.innerHTML = `
+      <div class="ai-toast-icon">${icons[type] || icons.info}</div>
+      <div class="ai-toast-message">${message}</div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(20px)';
+      toast.style.transition = 'all 0.3s';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+
+  // ===============================
+  // 📊 Risk Visualization
+  // ===============================
+  function createRiskMeter(riskLevel) {
+    return `
+      <div class="ai-risk-meter">
+        <div class="ai-risk-meter-fill ${riskLevel}"></div>
+      </div>
+    `;
+  }
+
+  // ===============================
+  // 🎯 Mock Analysis
+  // ===============================
   function mockBeforeSend(payload) {
     return {
       intent: "כוונה חיובית — בקשה עניינית.",
@@ -20,6 +81,9 @@
     };
   }
 
+  // ===============================
+  // 🌐 API Call
+  // ===============================
   async function analyzeBeforeSend(payload) {
     if (MOCK_MODE) {
       return new Promise((resolve) => setTimeout(() => resolve(mockBeforeSend(payload)), 200));
@@ -43,10 +107,14 @@
     });
   }
 
+  // ===============================
+  // 🎨 Panel State
+  // ===============================
   let panelRoot = null;
   let lastResult = null;
   let currentComposeContext = null;
   let applyHandlers = null;
+  let lastAnalysisPayload = null; // ✅ לשמירת payload אחרון
 
   function closePanel() {
     if (!panelRoot) return;
@@ -55,6 +123,9 @@
     currentComposeContext = null;
   }
 
+  // ===============================
+  // 🏗️ Create Panel
+  // ===============================
   function createPanel() {
     if (panelRoot) return panelRoot;
 
@@ -63,21 +134,42 @@
     panelRoot.innerHTML = `
       <div class="ai-guard-header">
         <div class="ai-guard-title">AI Communication Guard</div>
+        <button class="ai-settings-btn" title="הגדרות">⚙️</button>
         <button class="ai-guard-close-btn">×</button>
       </div>
-      <div class="ai-guard-subtitle">
-        ניתוח טון וסיכונים לפני שליחה
-        <br>
-        ${MOCK_MODE ? '<b style="color:#d00">MOCK MODE פעיל — אין פנייה לשרת</b>' : ""}
-        <div class="ai-ai-status" style="margin-top:6px; font-size:12px;"></div>
+
+      <!-- Settings Menu -->
+      <div class="ai-settings-menu">
+        <div class="ai-settings-item" data-action="toggle-theme">
+          <span>🌙 מצב כהה</span>
+          <div class="ai-toggle"></div>
+        </div>
       </div>
 
-      <div class="ai-tab-content ai-tab-content-before">
-        <label class="ai-label">נושא</label>
-        <input class="ai-input ai-input-subject" />
-        <label class="ai-label">גוף המייל</label>
-        <textarea class="ai-textarea ai-input-body"></textarea>
-        <button class="ai-secondary-btn ai-btn-apply" disabled>החל על הטיוטה</button>
+      <div class="ai-tab-content">
+        <div class="ai-guard-subtitle">
+          ניתוח טון וסיכונים לפני שליחה
+          ${MOCK_MODE ? '<br><b style="color:#d00">MOCK MODE פעיל — אין פנייה לשרת</b>' : ""}
+          <div class="ai-ai-status" style="margin-top:6px; font-size:12px;"></div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="ai-progress-container" style="display:none;">
+          <div class="ai-progress-bar" style="width: 0%"></div>
+        </div>
+
+        <button class="ai-main-btn ai-btn-reanalyze" style="display:none;">🔄 נתח מחדש</button>
+
+        <button class="ai-secondary-btn ai-btn-apply" style="display:none;" disabled>
+          ✨ החל על הטיוטה
+        </button>
+
+        <div class="ai-loading" style="display:none; text-align:center; padding:16px;">
+          <div class="ai-spinner"></div>
+          <div style="margin-top:8px; font-size:13px; color:#555;">
+            מנתח את ההודעה… אנא המתיני רגע
+          </div>
+        </div>
 
         <div class="ai-result" style="display:none;">
           <div class="ai-card">
@@ -90,6 +182,7 @@
               <span class="ai-icon">⚠️</span> רמת סיכון
               <span class="ai-badge ai-risk-badge"></span>
             </h4>
+            <div class="ai-risk-meter-container"></div>
             <ul class="ai-field-risk-factors"></ul>
           </div>
 
@@ -103,125 +196,211 @@
             <p class="ai-field-decision"></p>
           </div>
 
-          <div class="ai-card">
+          <div class="ai-card ai-rewrite-card" style="display:none;">
             <h4><span class="ai-icon">✨</span> ניסוח בטוח יותר</h4>
             <div class="ai-field-safer-body ai-rewrite-box"></div>
-            <div class="ai-field-no-rewrite" style="margin-top:8px; font-size:12px; color:#b45309; display:none;">
-              אין ניסוח מחדש כרגע (Gemini לא זמין). מוצגות אזהרות בלבד.
-            </div>
-          </div>
-
-          <div class="ai-card ai-thread-card" style="display:none;">
-            <h4><span class="ai-icon">🗂️</span> שירשור קודם</h4>
-            <div class="ai-timeline ai-thread-container"></div>
           </div>
         </div>
       </div>
     `;
 
     document.body.appendChild(panelRoot);
-    panelRoot.querySelector(".ai-guard-close-btn").onclick = closePanel;
 
-    panelRoot.querySelector(".ai-btn-analyze-before").onclick = async () => {
+    // Event Listeners
+    panelRoot.querySelector(".ai-guard-close-btn").onclick = closePanel;
+    
+    // Settings Button
+    const settingsBtn = panelRoot.querySelector(".ai-settings-btn");
+    const settingsMenu = panelRoot.querySelector(".ai-settings-menu");
+    settingsBtn.onclick = (e) => {
+      e.stopPropagation();
+      settingsMenu.classList.toggle('open');
+    };
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)) {
+        settingsMenu.classList.remove('open');
+      }
+    });
+
+    // Theme Toggle
+    panelRoot.querySelector('[data-action="toggle-theme"]').onclick = () => {
+      toggleTheme();
+      const toggle = panelRoot.querySelector('[data-action="toggle-theme"] .ai-toggle');
+      toggle.classList.toggle('active');
+    };
+
+    // Initialize theme toggle state
+    const isDark = document.body.classList.contains('ai-dark-mode');
+    if (isDark) {
+      panelRoot.querySelector('[data-action="toggle-theme"] .ai-toggle').classList.add('active');
+    }
+
+    // ===============================
+    // 🔄 Analysis Function
+    // ===============================
+    async function runAnalysis(forceRefresh = false) {
       const payload = {
-        subject: panelRoot.querySelector(".ai-input-subject").value || "",
-        body: panelRoot.querySelector(".ai-input-body").value || "",
+        subject: currentComposeContext?.subject || "",
+        body: currentComposeContext?.body || "",
         language: "auto",
         is_reply: !!currentComposeContext?.isReply,
         thread_context: currentComposeContext?.thread_context || null
       };
 
-      if (!payload.body.trim()) {
-        alert("צריך גוף מייל כדי לנתח 🙂");
+      // ✅ Cache חכם - רק אם התוכן זהה לחלוטין
+      const payloadKey = JSON.stringify(payload);
+      if (!forceRefresh && lastAnalysisPayload === payloadKey && lastResult) {
+        console.log('✅ Using cached analysis - תוכן זהה');
+        displayResults(lastResult);
+        showToast('📋 משתמש בניתוח קודם (תוכן זהה)', 'info', 2000);
         return;
       }
 
       const resultBox = panelRoot.querySelector(".ai-result");
       const applyBtn = panelRoot.querySelector(".ai-btn-apply");
       const aiStatus = panelRoot.querySelector(".ai-ai-status");
-      const noRewrite = panelRoot.querySelector(".ai-field-no-rewrite");
+      const reanalyzeBtn = panelRoot.querySelector(".ai-btn-reanalyze");
+      const loadingBox = panelRoot.querySelector(".ai-loading");
+      const progressContainer = panelRoot.querySelector(".ai-progress-container");
+      const progressBar = panelRoot.querySelector(".ai-progress-bar");
 
+      // Show loading state
+      loadingBox.style.display = "block";
+      progressContainer.style.display = "block";
       resultBox.style.display = "none";
       applyBtn.disabled = true;
       aiStatus.textContent = "";
-      noRewrite.style.display = "none";
+
+      // Animate progress bar
+      let progress = 0;
+      const progressInterval = setInterval(() => {
+        progress += Math.random() * 30;
+        if (progress > 90) progress = 90;
+        progressBar.style.width = progress + '%';
+      }, 200);
+
+      if (reanalyzeBtn) {
+        reanalyzeBtn.disabled = true;
+        reanalyzeBtn.textContent = "מנתח...";
+      }
 
       try {
         const data = await analyzeBeforeSend(payload);
+        
+        // Complete progress
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        
+        setTimeout(() => {
+          progressContainer.style.display = 'none';
+          progressBar.style.width = '0%';
+        }, 500);
+
         lastResult = data;
-        resultBox.style.display = "block";
-
-        // סטטוס AI ברור למעלה
-        if (data.ai_ok === false) {
-          aiStatus.innerHTML = `<b style="color:#b91c1c">Gemini לא זמין:</b> ${data.ai_error_code || "UNKNOWN"} ${data.ai_error_message ? ("— " + data.ai_error_message) : ""}`;
-          noRewrite.style.display = "block";
-        } else {
-          aiStatus.innerHTML = `<span style="color:#166534"><b>Gemini פעיל</b></span>`;
-        }
-
-        // Thread timeline
-        const threadCard = panelRoot.querySelector(".ai-thread-card");
-        const threadContainer = panelRoot.querySelector(".ai-thread-container");
-        if (currentComposeContext?.thread_context?.length) {
-          threadCard.style.display = "block";
-          threadContainer.innerHTML = "";
-          currentComposeContext.thread_context.forEach((msg) => {
-            const div = document.createElement("div");
-            div.className = "ai-tl-item";
-            div.innerHTML = `
-              <div class="ai-tl-author">${msg.author === "me" ? "אני" : "הוא/היא"}:</div>
-              <div class="ai-tl-text"></div>
-            `;
-            div.querySelector(".ai-tl-text").textContent = msg.text || "";
-            threadContainer.appendChild(div);
-          });
-        } else {
-          threadCard.style.display = "none";
-        }
-
-        // Risk badge
-        const riskBadge = panelRoot.querySelector(".ai-risk-badge");
-        riskBadge.textContent = data.risk_level || "";
-        riskBadge.className = "ai-badge ai-risk-badge";
-        if (data.risk_level === "low") riskBadge.classList.add("ai-badge-low");
-        else if (data.risk_level === "medium") riskBadge.classList.add("ai-badge-medium");
-        else if (data.risk_level === "high") riskBadge.classList.add("ai-badge-high");
-
-        panelRoot.querySelector(".ai-field-intent").textContent = data.intent || "";
-
-        const ul = panelRoot.querySelector(".ai-field-risk-factors");
-        ul.innerHTML = "";
-        (data.risk_factors || []).forEach((f) => {
-          const li = document.createElement("li");
-          li.textContent = f;
-          ul.appendChild(li);
-        });
-
-        panelRoot.querySelector(".ai-field-recipient").textContent = data.recipient_interpretation || "";
-        panelRoot.querySelector(".ai-field-decision").textContent = data.send_decision || "";
-
-        panelRoot.querySelector(".ai-field-safer-body").textContent = data.safer_body || "";
-
-        // ✅ Apply רק אם Gemini באמת נתן rewrite
-        const canApply = (data.ai_ok !== false) && !!(data.safer_body && data.safer_body.trim());
-        applyBtn.disabled = !canApply;
+        lastAnalysisPayload = payloadKey; // ✅ שמור את ה-payload
+        
+        displayResults(data);
+        showToast('✅ הניתוח הושלם בהצלחה', 'success');
 
       } catch (e) {
+        clearInterval(progressInterval);
+        progressContainer.style.display = 'none';
         console.error(e);
-        alert("שגיאה בניתוח: " + (e.message || e));
+        showToast('❌ שגיאה בניתוח: ' + (e.message || e), 'error');
         applyBtn.disabled = true;
+      } finally {
+        loadingBox.style.display = "none";
+        if (reanalyzeBtn) {
+          reanalyzeBtn.disabled = false;
+          reanalyzeBtn.textContent = "🔄 נתח מחדש";
+        }
       }
+    }
+
+    function displayResults(data) {
+      const resultBox = panelRoot.querySelector(".ai-result");
+      const applyBtn = panelRoot.querySelector(".ai-btn-apply");
+      const aiStatus = panelRoot.querySelector(".ai-ai-status");
+      
+      resultBox.style.display = "block";
+
+      // AI Status
+      if (data.ai_ok === false) {
+        aiStatus.innerHTML = `<b style="color:#b91c1c">Gemini לא זמין:</b> ${data.ai_error_code || "UNKNOWN"} ${data.ai_error_message ? ("— " + data.ai_error_message) : ""}`;
+      } else {
+        aiStatus.innerHTML = `<span style="color:#166534"><b>✓ Gemini פעיל</b></span>`;
+      }
+
+      // Risk badge
+      const riskBadge = panelRoot.querySelector(".ai-risk-badge");
+      riskBadge.textContent = data.risk_level || "";
+      riskBadge.className = "ai-badge ai-risk-badge";
+      if (data.risk_level === "low") riskBadge.classList.add("ai-badge-low");
+      else if (data.risk_level === "medium") riskBadge.classList.add("ai-badge-medium");
+      else if (data.risk_level === "high") riskBadge.classList.add("ai-badge-high");
+
+      // ✅ Risk meter ויזואלי
+      const riskMeterContainer = panelRoot.querySelector(".ai-risk-meter-container");
+      riskMeterContainer.innerHTML = createRiskMeter(data.risk_level);
+
+      panelRoot.querySelector(".ai-field-intent").textContent = data.intent || "";
+
+      const ul = panelRoot.querySelector(".ai-field-risk-factors");
+      ul.innerHTML = "";
+      (data.risk_factors || []).forEach((f) => {
+        const li = document.createElement("li");
+        li.textContent = f;
+        ul.appendChild(li);
+      });
+
+      panelRoot.querySelector(".ai-field-recipient").textContent = data.recipient_interpretation || "";
+      panelRoot.querySelector(".ai-field-decision").textContent = data.send_decision || "";
+
+      const rewriteCard = panelRoot.querySelector(".ai-rewrite-card");
+      
+      rewriteCard.style.display = "none";
+      applyBtn.style.display = "none";
+      applyBtn.disabled = true;
+
+      if (
+        data.ai_ok === true &&
+        data.analysis_layer === "gemini" &&
+        data.safer_body &&
+        data.safer_body.trim()
+      ) {
+        panelRoot.querySelector(".ai-field-safer-body").textContent = data.safer_body;
+        rewriteCard.style.display = "block";
+        applyBtn.style.display = "block";
+        applyBtn.disabled = false;
+      }
+    }
+
+    panelRoot._runAnalysis = runAnalysis;
+
+    // Re-analyze button
+    panelRoot.querySelector(".ai-btn-reanalyze").onclick = async () => {
+      await runAnalysis(true); // ✅ force refresh
+      panelRoot.querySelector(".ai-btn-reanalyze").style.display = "none";
     };
 
+    // Apply button
     panelRoot.querySelector(".ai-btn-apply").onclick = () => {
       if (lastResult && applyHandlers) {
         applyHandlers.onApply(lastResult, currentComposeContext);
+        showToast('✨ השינויים הוחלו על הטיוטה', 'success');
+        // ✅ אחרי החלה - נקה cache כי התוכן השתנה
+        lastAnalysisPayload = null;
       }
     };
 
     return panelRoot;
   }
 
+  // ===============================
+  // 🚀 Open Panel
+  // ===============================
   function openPanel(composeContext, handlers) {
     currentComposeContext = composeContext;
     applyHandlers = handlers;
@@ -229,17 +408,24 @@
     const panel = createPanel();
     panel.style.display = "block";
 
-    panel.querySelector(".ai-input-subject").value = composeContext.subject || "";
-    panel.querySelector(".ai-input-body").value = composeContext.body || "";
+    const reanalyzeBtn = panel.querySelector(".ai-btn-reanalyze");
+    if (reanalyzeBtn) reanalyzeBtn.style.display = "none";
 
-    // ⏱️ ניתוח אוטומטי מיד עם פתיחת הפאנל
+    // Auto-analyze on open
     setTimeout(() => {
-      const analyzeBtn = panel.querySelector(".ai-btn-analyze-before");
-      if (analyzeBtn) {
-        analyzeBtn.click();
-      }
+      panel._runAnalysis && panel._runAnalysis();
     }, 0);
   }
 
-  window.AIGuardUI = { openPanel, closePanel };
+  // ===============================
+  // 🌍 Initialize
+  // ===============================
+  loadTheme();
+
+  // Expose API
+  window.AIGuardUI = { 
+    openPanel, 
+    closePanel,
+    showToast 
+  };
 })();
