@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes.before_send import router as before_send_router
+from .routes.before_send import router as before_send_router
 
 app = FastAPI(
     title="AI Communication Guard",

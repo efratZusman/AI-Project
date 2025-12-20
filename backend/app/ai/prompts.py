@@ -2,7 +2,7 @@
 
 import json
 from typing import List, Optional
-from models import ThreadMessage
+from ..models import ThreadMessage
 
 BEFORE_SEND_SCHEMA = {
     "type": "object",
