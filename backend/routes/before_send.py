@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from backend.ai.analyzer import analyze_before_send
-from backend.models import BeforeSendInput
+from ai.analyzer import analyze_before_send
+from models import BeforeSendInput
 
 router = APIRouter()
 

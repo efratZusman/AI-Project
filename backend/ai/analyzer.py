@@ -3,10 +3,10 @@
 
 import logging
 from typing import Optional, List, Tuple
-from backend.ai.lexicon import LEXICON
-from backend.ai.ai import generate_structured_json
-from backend.ai.prompts import BEFORE_SEND_SCHEMA, build_before_send_prompt
-from backend.models import ThreadMessage
+from ai.lexicon import LEXICON
+from ai.ai import generate_structured_json
+from ai.prompts import BEFORE_SEND_SCHEMA, build_before_send_prompt
+from models import ThreadMessage
 
 logger = logging.getLogger("analyzer")
 
