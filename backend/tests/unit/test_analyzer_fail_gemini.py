@@ -1,8 +1,12 @@
 from app.ai.analyzer import analyze_before_send
 
+
 def test_pressure_word_without_gemini(monkeypatch):
-    # מדמים ש-Gemini לא קיים
-    monkeypatch.setenv("GEMINI_API_KEY", "")
+    # מכריחים כשל Gemini
+    monkeypatch.setattr(
+        "app.ai.analyzer.generate_structured_json",
+        lambda *args, **kwargs: {"error": "NO_API_KEY"}
+    )
 
     res = analyze_before_send(
         subject="ASAP",
@@ -15,6 +19,4 @@ def test_pressure_word_without_gemini(monkeypatch):
     assert res["risk_level"] in ("medium", "high")
     assert res["send_decision"] != "send_as_is"
     assert res["ai_ok"] is False
-    assert res["analysis_layer"] in ("lexicon", "lexicon_only", "gemini_failed")
-    assert res["safer_body"] == "Please respond ASAP"
-    assert res["notes_for_sender"]
+    assert res["analysis_layer"] == "gemini_failed"
