@@ -11,14 +11,15 @@ pipeline {
 
         stage('Build Backend Image') {
             steps {
-                sh 'docker-compose build backend'
+                sh 'docker build -t ai-guard-backend ./backend'
             }
         }
 
         stage('Run Backend Tests (in container)') {
             steps {
                 sh '''
-                  docker-compose run --rm backend \
+                  docker run --rm \
+                  ai-guard-backend \
                   pytest --cov=app --cov-report=xml
                 '''
             }
@@ -26,7 +27,7 @@ pipeline {
 
         stage('Build Frontend Extension Image') {
             steps {
-                sh 'docker-compose build frontend-extension'
+                sh 'docker build -t ai-guard-extension ./extension'
             }
         }
     }
