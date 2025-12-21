@@ -9,3 +9,8 @@ services:
     env_file:
       - ./backend/.env
     restart: unless-stopped
+
+  frontend-extension:
+    build:
+      context: ./extension
+    container_name: ai-guard-extension
