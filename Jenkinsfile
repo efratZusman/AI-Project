@@ -11,14 +11,14 @@ pipeline {
 
         stage('Build Backend Image') {
             steps {
-                sh 'docker compose build backend'
+                sh 'docker-compose build backend'
             }
         }
 
         stage('Run Backend Tests (in container)') {
             steps {
                 sh '''
-                  docker compose run --rm backend \
+                  docker-compose run --rm backend \
                   pytest --cov=app --cov-report=xml
                 '''
             }
@@ -26,7 +26,7 @@ pipeline {
 
         stage('Build Frontend Extension Image') {
             steps {
-                sh 'docker compose build frontend-extension'
+                sh 'docker-compose build frontend-extension'
             }
         }
     }
