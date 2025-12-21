@@ -94,10 +94,10 @@ LANGUAGE LOCK (קריטי):
 
 אם אחד מהרכיבים חסר — הניסוח אינו תקין.
 
-כלל גורמי סיכון:
-- risk_factors יוצגו כרשימת נקודות קצרות.
-- כל גורם יתאר תופעה תקשורתית, לא פרשנות רגשית.
-- אין לחזור על אותו רעיון בניסוחים שונים.
+כלל שכתוב לסיכון גבוה:
+- עבור risk_level = high, safer_body צריך להיות לפחות 2 משפטים.
+risk_factors:
+- רשימת נקודות קצרות המתארות בעיות תקשורתיות.
 
 חוקי פלט:
 - החזר JSON תקין בלבד.
@@ -134,6 +134,9 @@ INTENT FIELD RULE:
 - Do not include judgment, criticism, or interpretation of the recipient.
 - One short, neutral sentence.
 
+High risk rewrite rule:
+- For risk_level = high, safer_body should be at least 2 sentences.
+
 MANDATORY RULE FOR HIGH RISK (risk_level = high):
 If risk_level is "high", the safer_body MUST include ALL of the following:
 
@@ -151,10 +154,8 @@ If risk_level is "high", the safer_body MUST include ALL of the following:
 
 If any of these elements are missing, the output is invalid.
 
-RISK FACTORS RULE:
-- risk_factors must be a concise bullet-style list.
-- Each item describes a communication issue, not an emotional analysis.
-- Avoid duplication or overlapping wording.
+risk_factors:
+- A short list describing communication issues.
 
 Output rules:
 - Return valid JSON only.
