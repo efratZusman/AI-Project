@@ -51,12 +51,19 @@ The backend can be run locally using Docker Compose:
 ```bash
 docker-compose up --build
 
+---
+
 The backend service will be available at:
+
+```bash
 http://localhost:8000
+---
 
 Automated tests with coverage can be executed locally using:
+```bash
 cd backend
 pytest --cov=app --cov-report=xml
+---
 
 Environment Configuration
 The backend supports optional AI integration via environment variables provided in a .env file. If the Gemini API key is not configured, the system automatically operates in lexicon-only mode without failure.
