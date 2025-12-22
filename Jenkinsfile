@@ -15,6 +15,22 @@ pipeline {
             }
         }
 
+        stage('Push Backend Image to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker tag ai-guard-backend $DOCKER_USER/ai-guard-backend:latest
+                    docker push $DOCKER_USER/ai-guard-backend:latest
+                    '''
+                }
+            }
+        }
+
         stage('Run Backend Tests (in container)') {
             steps {
                 sh '''

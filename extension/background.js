@@ -1,14 +1,18 @@
 const BASE_URL = "http://127.0.0.1:8000";
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+
+  // ===============================
+  // BEFORE SEND 
+  // ===============================
   if (message?.action === "analyzeBeforeSend") {
     fetch(`${BASE_URL}/analyze-before-send`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(message.payload),
+      body: JSON.stringify(message.payload)
     })
       .then(async (res) => {
-        let data = null;
+        let data;
         try {
           data = await res.json();
         } catch (e) {
@@ -18,6 +22,28 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })
       .catch((err) => {
         sendResponse({ error: "FETCH_FAILED", message: err?.message || String(err) });
+      });
+
+    return true;
+  }
+
+  // ===============================
+  // CHAT MONITOR 
+  // ===============================
+  if (message?.action === "analyzeChatTrend") {
+    fetch(`${BASE_URL}/analyze-chat-trend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: message.messages
+      })
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        sendResponse(data);
+      })
+      .catch((err) => {
+        sendResponse({ error: "CHAT_ANALYSIS_FAILED", message: String(err) });
       });
 
     return true;

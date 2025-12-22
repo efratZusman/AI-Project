@@ -12,29 +12,29 @@
   right: 24px;
   width: 420px;
   max-height: 85vh;
-  
+
   /* עיצוב מודרני עם gradient עדין */
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 20px;
-  
+
   /* Shadow עמוק יותר למראה מרחף */
-  box-shadow: 
+  box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.08),
     0 8px 16px rgba(0, 0, 0, 0.04),
     0 0 0 1px rgba(148, 163, 184, 0.1);
-  
+
   z-index: 999999;
   font-family: 'Rubik', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   direction: rtl;
-  
+
   /* אנימציית כניסה חלקה */
   animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top right;
-  
+
   /* Backdrop blur למראה מודרני */
   backdrop-filter: blur(8px);
-  
+
   /* ✅ תיקון - מבנה גלילה נכון */
   display: flex;
   flex-direction: column;
@@ -46,6 +46,7 @@
     opacity: 0;
     transform: translateX(20px) scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: translateX(0) scale(1);
@@ -59,7 +60,7 @@
   align-items: center;
   padding: 20px 24px 16px;
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.6) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 100%);
   backdrop-filter: blur(10px);
   flex-shrink: 0;
 }
@@ -145,12 +146,20 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ==================== כפתורים ==================== */
-.ai-main-btn, .ai-secondary-btn {
+.ai-main-btn,
+.ai-secondary-btn {
   margin: 12px 24px;
   padding: 14px 20px;
   border-radius: 12px;
@@ -169,7 +178,7 @@
 .ai-main-btn {
   background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
   color: white;
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(37, 99, 235, 0.2),
     0 2px 4px rgba(37, 99, 235, 0.1);
 }
@@ -181,7 +190,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transition: left 0.5s;
 }
 
@@ -191,7 +200,7 @@
 
 .ai-main-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 
+  box-shadow:
     0 8px 20px rgba(37, 99, 235, 0.3),
     0 4px 8px rgba(37, 99, 235, 0.15);
 }
@@ -233,7 +242,7 @@
 }
 
 .ai-btn-reanalyze:hover {
-  box-shadow: 
+  box-shadow:
     0 8px 20px rgba(139, 92, 246, 0.3),
     0 4px 8px rgba(139, 92, 246, 0.15);
 }
@@ -257,7 +266,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .ai-loading div:last-child {
@@ -279,7 +290,7 @@
   padding: 18px;
   margin-bottom: 14px;
   background: white;
-  box-shadow: 
+  box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.02),
     0 1px 2px rgba(0, 0, 0, 0.02);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -287,17 +298,32 @@
 }
 
 /* אנימציה מדורגת לכרטיסיות */
-.ai-card:nth-child(1) { animation-delay: 0.05s; }
-.ai-card:nth-child(2) { animation-delay: 0.1s; }
-.ai-card:nth-child(3) { animation-delay: 0.15s; }
-.ai-card:nth-child(4) { animation-delay: 0.2s; }
-.ai-card:nth-child(5) { animation-delay: 0.25s; }
+.ai-card:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.ai-card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.ai-card:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+.ai-card:nth-child(4) {
+  animation-delay: 0.2s;
+}
+
+.ai-card:nth-child(5) {
+  animation-delay: 0.25s;
+}
 
 @keyframes slideUp {
   from {
     opacity: 0;
     transform: translateY(16px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -306,7 +332,7 @@
 
 .ai-card:hover {
   border-color: rgba(148, 163, 184, 0.4);
-  box-shadow: 
+  box-shadow:
     0 8px 20px rgba(0, 0, 0, 0.04),
     0 2px 4px rgba(0, 0, 0, 0.02);
   transform: translateY(-2px);
@@ -322,7 +348,8 @@
   gap: 8px;
 }
 
-.ai-card p, .ai-card li {
+.ai-card p,
+.ai-card li {
   font-size: 14px;
   color: #475569;
   line-height: 1.7;
@@ -363,6 +390,7 @@
     opacity: 0;
     transform: scale(0.8);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -392,9 +420,12 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.8;
   }
@@ -474,6 +505,7 @@
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -704,7 +736,7 @@
   z-index: 9999;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Rubik', sans-serif;
-  box-shadow: 
+  box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.04),
     0 1px 2px rgba(0, 0, 0, 0.02);
 }
@@ -719,7 +751,7 @@
   background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%) !important;
   border-color: #cbd5e1;
   transform: translateY(-1px);
-  box-shadow: 
+  box-shadow:
     0 4px 8px rgba(0, 0, 0, 0.06),
     0 2px 4px rgba(0, 0, 0, 0.04) !important;
 }
@@ -839,6 +871,7 @@ body.ai-dark-mode .ai-history-item:hover {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -906,20 +939,25 @@ body.ai-dark-mode .ai-history-item:hover {
   flex: 1 1 auto;
   overflow-y: auto;
   overflow-x: hidden;
-  min-height: 0; /* ⭐ זה התיקון הקריטי */
+  min-height: 0;
+  /* ⭐ זה התיקון הקריטי */
 }
+
 /* ✅ FORCE SCROLL – Gmail Safe */
 #ai-guard-panel {
-  height: 85vh;        /* לא max-height */
+  height: 85vh;
+  /* לא max-height */
   max-height: 85vh;
 }
 
 .ai-tab-content {
-  height: calc(85vh - 90px); /* גובה הפאנל פחות header */
+  height: calc(85vh - 90px);
+  /* גובה הפאנל פחות header */
   overflow-y: auto !important;
   overflow-x: hidden;
   min-height: 0;
 }
+
 #ai-guard-panel * {
   box-sizing: border-box;
 }
@@ -927,10 +965,198 @@ body.ai-dark-mode .ai-history-item:hover {
 .ai-tab-content {
   overscroll-behavior: contain;
 }
+
 .ai-tab-content {
   scroll-behavior: smooth;
 }
 
+.ai-lexicon-word {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+.ai-lexicon-word.pressure {
+  text-decoration-color: #2563eb;
+}
+
+.ai-lexicon-word.danger {
+  text-decoration-color: #dc2626;
+  font-weight: 500;
+}
+
+.ai-chat-warning {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111827;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 9999;
+  transition: opacity 0.3s;
+}
+
+.ai-chat-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  border: none;
+  background: #1f2937;
+  color: white;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* =========================
+   Chat Monitor – UI & Highlight
+   (scoped to avoid before-send)
+========================= */
+
+/* Floating toggle */
+#ai-chat-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2147483647;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 12px;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  font: 600 12px/1.1 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #0f172a;
+}
+
+#ai-chat-toggle:hover {
+  transform: translateY(-1px);
+}
+
+#ai-chat-toggle:active {
+  transform: translateY(0px);
+}
+
+#ai-chat-toggle .ai-pill {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06) inset;
+}
+
+#ai-chat-toggle[data-enabled="true"] .ai-pill {
+  background: #22c55e;
+}
+
+#ai-chat-toggle[data-enabled="false"] .ai-pill {
+  background: #94a3b8;
+}
+
+#ai-chat-toggle .ai-label {
+  letter-spacing: 0.1px;
+  user-select: none;
+}
+
+#ai-chat-toggle[data-enabled="false"] {
+  opacity: 0.55;
+}
+/* ===============================
+   Lexicon Highlight – Base (Glow)
+   =============================== */
+
+.ai-lexicon-word {
+  text-decoration: none !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  padding: 0 2px;
+  border-radius: 5px;
+  font-weight: 700;
+  transition:
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    text-shadow 0.15s ease;
+}
+/* .ai-lexicon-word {
+  font-weight: 600;
+  padding: 0 2px;
+  border-radius: 3px;
+  background: transparent;
+} */
+
+/* 🔴 שלילי */
+.ai-lexicon-word.danger {
+  color: #b91c1c;
+  box-shadow: inset 0 -0.45em 0 rgba(239, 68, 68, 0.18);
+}
+
+/* 🟡 ביניים */
+.ai-lexicon-word.neutral {
+  color: #b45309;
+  box-shadow: inset 0 -0.45em 0 rgba(245, 158, 11, 0.18);
+}
+
+/* 🟢 חיובי */
+.ai-lexicon-word.positive {
+  color: #15803d;
+  box-shadow: inset 0 -0.45em 0 rgba(34, 197, 94, 0.18);
+}
+
+
+/* Warning banner */
+.ai-chat-warning {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+
+  max-width: min(720px, 92vw);
+  padding: 10px 14px;
+  border-radius: 14px;
+
+  background: rgba(15, 23, 42, 0.92);
+  color: #fff;
+
+  font: 600 13px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.ai-chat-legend {
+  position: fixed;
+  bottom: 72px;
+  right: 16px;
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  z-index: 99999;
+}
+
+.ai-chat-legend .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-left: 6px;
+}
+
+.dot.danger { background: #ef4444; }
+.dot.neutral { background: #f59e0b; }
+.dot.positive { background: #22c55e; }
 
 /* ✅ הוסף Responsive behavior */
 @media (max-width: 1366px) {
