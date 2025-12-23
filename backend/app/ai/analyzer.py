@@ -133,7 +133,7 @@ def analyze_thread_structure(thread: Optional[List[ThreadMessage]]) -> dict:
         if score <= 1:
             return {}
 
-        if score <= 6:
+        if score <= 4:
             # MEDIUM
             return {
                 "intent": (
