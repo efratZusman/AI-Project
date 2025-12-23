@@ -124,6 +124,53 @@ def analyze_thread_structure(thread: Optional[List[ThreadMessage]]) -> dict:
             break
 
     return {"consecutive_from_me": consecutive}
+    
+    # --------------------------------------------------
+    # local interpretation
+    # --------------------------------------------------
+
+    def local_interpretation(score: int, reasons: List[str], lang: str) -> dict:
+        if score <= 1:
+            return {}
+
+        if score <= 6:
+            # MEDIUM
+            return {
+                "intent": (
+                    "קידום נושא תוך הפעלת לחץ"
+                    if lang == "he"
+                    else "Pushing for progress with pressure"
+                ),
+                "recipient_interpretation": (
+                    "ההודעה עלולה להיתפס כלחוצה או ביקורתית."
+                    if lang == "he"
+                    else "The message may be perceived as pressured or critical."
+                ),
+                "notes_for_sender": [
+                    "שקול לרכך את הטון או להבהיר כוונה חיובית."
+                ] if lang == "he" else [
+                    "Consider softening the tone or clarifying positive intent."
+                ],
+            }
+
+        # HIGH (אבל עדיין לפני Gemini)
+        return {
+            "intent": (
+                "הבעת תסכול או דרישה נחרצת"
+                if lang == "he"
+                else "Expressing frustration or making a firm demand"
+            ),
+            "recipient_interpretation": (
+                "ההודעה עלולה להיתפס כהתקפה אישית או כהסלמה."
+                if lang == "he"
+                else "The message may be perceived as a personal attack or escalation."
+            ),
+            "notes_for_sender": [
+                "הטון עלול לפגוע בדיאלוג."
+            ] if lang == "he" else [
+                "The tone may harm the dialogue."
+            ],
+        }
 
 # --------------------------------------------------
 # Unified score calculation
@@ -193,6 +240,9 @@ def analyze_before_send(
     total_score, reasons = compute_total_score(body, lang)
     res["risk_factors"] = reasons
     res["risk_level"] = risk_bucket(total_score)
+
+    interpretation = local_interpretation(total_score, reasons, lang)
+    res.update(interpretation)
 
     if res["risk_level"] == "medium":
         res["send_decision"] = "send_with_caution"
