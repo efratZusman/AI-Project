@@ -23,14 +23,9 @@ VERY_LONG_TEXT_THRESHOLD = 1200
 # --------------------------------------------------
 
 def detect_lang(text: str, language: str) -> str:
-    if language in ("he", "en"):
-        return language
-
-    if not (text or "").strip():
-        return "he"  # ✅ ברירת מחדל בטוחה
-
-    return "he" if any("\u0590" <= ch <= "\u05EA" for ch in text) else "en"
-
+    if language == "en":
+        return "en"
+    return "he"
 
 def risk_bucket(score: int) -> str:
     if score <= 1:
@@ -124,53 +119,52 @@ def analyze_thread_structure(thread: Optional[List[ThreadMessage]]) -> dict:
             break
 
     return {"consecutive_from_me": consecutive}
-    
-    # --------------------------------------------------
-    # local interpretation
-    # --------------------------------------------------
 
-    def local_interpretation(score: int, reasons: List[str], lang: str) -> dict:
-        if score <= 1:
-            return {}
+ # --------------------------------------------------
+ # local interpretation
+ # --------------------------------------------------
+def local_interpretation(score: int, reasons: List[str], lang: str) -> dict:
+    if score <= 1:
+        return {}
 
-        if score <= 4:
-            # MEDIUM
-            return {
-                "intent": (
-                    "קידום נושא תוך הפעלת לחץ"
-                    if lang == "he"
-                    else "Pushing for progress with pressure"
-                ),
-                "recipient_interpretation": (
-                    "ההודעה עלולה להיתפס כלחוצה או ביקורתית."
-                    if lang == "he"
-                    else "The message may be perceived as pressured or critical."
-                ),
-                "notes_for_sender": [
-                    "שקול לרכך את הטון או להבהיר כוונה חיובית."
-                ] if lang == "he" else [
-                    "Consider softening the tone or clarifying positive intent."
-                ],
-            }
-
-        # HIGH (אבל עדיין לפני Gemini)
+    if score <= 4:
+        # MEDIUM
         return {
             "intent": (
-                "הבעת תסכול או דרישה נחרצת"
-                if lang == "he"
-                else "Expressing frustration or making a firm demand"
+                "Pushing for progress with pressure"
+                if lang == "en"
+                else "קידום נושא תוך הפעלת לחץ"
             ),
             "recipient_interpretation": (
-                "ההודעה עלולה להיתפס כהתקפה אישית או כהסלמה."
-                if lang == "he"
-                else "The message may be perceived as a personal attack or escalation."
+                "The message may be perceived as pressured or critical."
+                if lang == "en"
+                else "ההודעה עלולה להיתפס כלחוצה או ביקורתית."
             ),
-            "notes_for_sender": [
-                "הטון עלול לפגוע בדיאלוג."
-            ] if lang == "he" else [
-                "The tone may harm the dialogue."
-            ],
+            "notes_for_sender": (
+                ["Consider softening the tone or clarifying positive intent."]
+                if lang == "en"
+                else ["שקול לרכך את הטון או להבהיר כוונה חיובית."]
+            ),
         }
+
+    # HIGH (אבל עדיין לפני Gemini)
+    return {
+        "intent": (
+            "Expressing frustration or making a firm demand"
+            if lang == "en"
+            else "הבעת תסכול או דרישה נחרצת"
+        ),
+        "recipient_interpretation": (
+            "The message may be perceived as a personal attack or escalation."
+            if lang == "en"
+            else "ההודעה עלולה להיתפס כהתקפה אישית או כהסלמה."
+        ),
+        "notes_for_sender": (
+            ["The tone may harm the dialogue."]
+            if lang == "en"
+            else ["הטון עלול לפגוע בדיאלוג."]
+        ),
+    }
 
 # --------------------------------------------------
 # Unified score calculation
