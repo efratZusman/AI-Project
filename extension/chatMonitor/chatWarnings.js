@@ -29,7 +29,7 @@
 
     const el = ensureEl();
 
-    el.textContent = text;
+    el.textContent = "⚠️ " + text;
     el.classList.remove("warning", "low", "medium", "high");
     el.classList.add("visible", "error");
 

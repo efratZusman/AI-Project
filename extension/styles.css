@@ -1176,12 +1176,22 @@ body.ai-dark-mode .ai-history-item:hover {
   transform: translateX(-50%) translateY(0);
 }
 
+
+/* =========================
+   Error – מערכת / AI לא זמין
+   ========================= */
+
+.ai-chat-warning.error {
+  /* border-left: 4px solid #dc2626; */
+  background: rgba(24, 24, 27, 0.96);
+}
+
 /* =========================
    Warning – לפי risk_level
    ========================= */
 
 .ai-chat-warning.warning.low {
-  border-left: 4px solid #64748b; /* אפור */
+  border-left: 4px solid #fbff14; /* צהוב */
 }
 
 .ai-chat-warning.warning.medium {
@@ -1190,13 +1200,4 @@ body.ai-dark-mode .ai-history-item:hover {
 
 .ai-chat-warning.warning.high {
   border-left: 4px solid #ef4444; /* אדום */
-}
-
-/* =========================
-   Error – מערכת / AI לא זמין
-   ========================= */
-
-.ai-chat-warning.error {
-  border-left: 4px solid #dc2626;
-  background: rgba(24, 24, 27, 0.96);
 }
