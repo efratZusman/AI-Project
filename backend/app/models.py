@@ -13,3 +13,7 @@ class BeforeSendInput(BaseModel):
     language: str = "auto"   # "auto" | "he" | "en"
     is_reply: bool = False
     thread_context: Optional[List[ThreadMessage]] = None
+    
+class ChatTrendInput(BaseModel):
+    messages: List[str]
+    language: str = "auto"  

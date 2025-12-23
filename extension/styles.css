@@ -984,20 +984,6 @@ body.ai-dark-mode .ai-history-item:hover {
   font-weight: 500;
 }
 
-.ai-chat-warning {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #111827;
-  color: #fff;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  z-index: 9999;
-  transition: opacity 0.3s;
-}
-
 .ai-chat-toggle {
   position: fixed;
   bottom: 20px;
@@ -1111,29 +1097,6 @@ body.ai-dark-mode .ai-history-item:hover {
   box-shadow: inset 0 -0.45em 0 rgba(34, 197, 94, 0.18);
 }
 
-
-/* Warning banner */
-.ai-chat-warning {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2147483647;
-
-  max-width: min(720px, 92vw);
-  padding: 10px 14px;
-  border-radius: 14px;
-
-  background: rgba(15, 23, 42, 0.92);
-  color: #fff;
-
-  font: 600 13px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
-
-  opacity: 0;
-  transition: opacity 220ms ease;
-}
-
 .ai-chat-legend {
   position: fixed;
   bottom: 72px;
@@ -1180,4 +1143,60 @@ body.ai-dark-mode .ai-history-item:hover {
 #ai-guard-panel.collapsed {
   width: 60px;
   cursor: pointer;
+}
+/* =========================
+   AI Chat Warning / Error
+   ========================= */
+
+.ai-chat-warning {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  z-index: 2147483647;
+
+  max-width: min(640px, 92vw);
+  padding: 10px 14px;
+  border-radius: 10px;
+
+  background: rgba(15, 23, 42, 0.95);
+  color: #f8fafc;
+
+  font: 600 13px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+
+  opacity: 0;
+  transition: opacity 220ms ease, transform 220ms ease;
+  pointer-events: none;
+}
+
+/* מופיע */
+.ai-chat-warning.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* =========================
+   Warning – לפי risk_level
+   ========================= */
+
+.ai-chat-warning.warning.low {
+  border-left: 4px solid #64748b; /* אפור */
+}
+
+.ai-chat-warning.warning.medium {
+  border-left: 4px solid #f59e0b; /* כתום */
+}
+
+.ai-chat-warning.warning.high {
+  border-left: 4px solid #ef4444; /* אדום */
+}
+
+/* =========================
+   Error – מערכת / AI לא זמין
+   ========================= */
+
+.ai-chat-warning.error {
+  border-left: 4px solid #dc2626;
+  background: rgba(24, 24, 27, 0.96);
 }

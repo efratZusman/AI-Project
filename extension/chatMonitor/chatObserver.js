@@ -57,8 +57,22 @@
                 conversationKey,
               },
               (res) => {
-                if (res?.warning_text) {
-                  window.ChatWarnings.show(res.warning_text);
+                // ✅ כאן השילוב שביקשת
+
+                if (!res) return;
+
+                if (res.ai_ok === false) {
+                  window.ChatWarnings.showError(
+                    "מערכת הניטור אינה זמינה כרגע. ייתכן שהמידע אינו מנותח בזמן אמת."
+                  );
+                  return;
+                }
+
+                if (res.warning_text && res.risk_level) {
+                  window.ChatWarnings.show(
+                    res.warning_text,
+                    res.risk_level
+                  );
                 }
               }
             );
