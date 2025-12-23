@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routes.before_send import router as before_send_router
+from .routes.chat_trend import router as chat_trend_router 
 
 app = FastAPI(
     title="AI Communication Guard",
@@ -16,6 +17,7 @@ app.add_middleware(
 )
 
 app.include_router(before_send_router)
+app.include_router(chat_trend_router)  
 
 @app.get("/health")
 def health():
