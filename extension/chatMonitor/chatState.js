@@ -52,7 +52,7 @@ function shouldAnalyze(state) {
   const now = Date.now();
 
   // ⛔ ניתחנו לאחרונה – תני לשיחה להתקדם
-  const COOLDOWN_MS = 60_000; // דקה
+  const COOLDOWN_MS = Math.min(120000, 30000 + state.meaningfulMessages * 10000);
   if (now - state.lastAnalyzedAt < COOLDOWN_MS) {
     return false;
   }
@@ -81,9 +81,10 @@ function markAnalyzed(state) {
   state.lockedUntilNextMessage = true;
 
   // מאפסים צבירה
+  state.messages = state.messages.slice(-10);
+  state.meaningfulMessages = Math.min(state.meaningfulMessages, 3);
   state.score = 0;
-  state.meaningfulMessages = 0;
-  state.messages = [];
+
 }
 
 

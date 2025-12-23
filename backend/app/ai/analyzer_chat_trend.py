@@ -24,7 +24,7 @@ def analyze_chat_trend(messages: List[str], language: str = "auto") -> dict:
     if not msgs:
         return fallback
 
-    prompt = build_chat_trend_prompt(msgs[-10:], lang)
+    prompt = build_chat_trend_prompt(msgs[-30:], lang)
     gem = generate_structured_json(prompt, CHAT_TREND_SCHEMA)
 
     # ⭐ התיקון הקריטי כאן
