@@ -1157,3 +1157,27 @@ body.ai-dark-mode .ai-history-item:hover {
 .dot.danger { background: #ef4444; }
 .dot.neutral { background: #f59e0b; }
 .dot.positive { background: #22c55e; }
+
+/* ✅ הוסף Responsive behavior */
+@media (max-width: 1366px) {
+  #ai-guard-panel {
+    width: 380px; /* קצת יותר צר */
+    right: 16px;
+  }
+}
+
+@media (max-width: 1024px) {
+  #ai-guard-panel {
+    width: calc(100vw - 32px); /* תופס את כל הרוחב */
+    right: 16px;
+    left: 16px;
+    top: 80px;
+    max-height: 80vh;
+  }
+}
+
+/* ✅ אפשרות למשוך את הפאנל */
+#ai-guard-panel.collapsed {
+  width: 60px;
+  cursor: pointer;
+}

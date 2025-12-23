@@ -11,13 +11,26 @@ from ..models import ThreadMessage
 logger = logging.getLogger("analyzer")
 
 # --------------------------------------------------
+# Config
+# --------------------------------------------------
+
+GEMINI_SCORE_THRESHOLD = 8
+LONG_TEXT_THRESHOLD = 600
+VERY_LONG_TEXT_THRESHOLD = 1200
+
+# --------------------------------------------------
 # Utils
 # --------------------------------------------------
 
 def detect_lang(text: str, language: str) -> str:
     if language in ("he", "en"):
         return language
-    return "he" if any("\u0590" <= ch <= "\u05EA" for ch in (text or "")) else "en"
+
+    if not (text or "").strip():
+        return "he"  # ✅ ברירת מחדל בטוחה
+
+    return "he" if any("\u0590" <= ch <= "\u05EA" for ch in text) else "en"
+
 
 def risk_bucket(score: int) -> str:
     if score <= 1:
@@ -25,6 +38,7 @@ def risk_bucket(score: int) -> str:
     if score <= 6:
         return "medium"
     return "high"
+
 
 def base_response(body: str, lang: str) -> dict:
     return {
@@ -45,7 +59,7 @@ def base_response(body: str, lang: str) -> dict:
         "ai_ok": True,
         "ai_error_code": None,
         "ai_error_message": None,
-        "analysis_layer": "lexicon",
+        "analysis_layer": "local_scoring",
     }
 
 # --------------------------------------------------
@@ -82,9 +96,6 @@ def quick_risk_score(text: str, lang: str) -> Tuple[int, List[str]]:
 
     return score, list(dict.fromkeys(reasons))
 
-# --------------------------------------------------
-# Explicit emotion detection
-# --------------------------------------------------
 
 def has_explicit_emotion(text: str, lang: str) -> bool:
     lex = LEXICON.get(lang, LEXICON["he"])
@@ -95,12 +106,12 @@ def has_explicit_emotion(text: str, lang: str) -> bool:
     return False
 
 # --------------------------------------------------
-# Thread structure analysis
+# Thread structure
 # --------------------------------------------------
 
 def analyze_thread_structure(thread: Optional[List[ThreadMessage]]) -> dict:
     if not thread:
-        return {"mode": "no_thread", "consecutive_from_me": 0}
+        return {"consecutive_from_me": 0}
 
     last_msgs = thread[-3:]
     authors = [m.author for m in last_msgs]
@@ -112,13 +123,33 @@ def analyze_thread_structure(thread: Optional[List[ThreadMessage]]) -> dict:
         else:
             break
 
-    if all(a == "me" for a in authors):
-        return {"mode": "self_sequence", "consecutive_from_me": consecutive}
+    return {"consecutive_from_me": consecutive}
 
-    if "them" in authors and authors[-1] == "me":
-        return {"mode": "dialog", "consecutive_from_me": consecutive}
+# --------------------------------------------------
+# Unified score calculation
+# --------------------------------------------------
 
-    return {"mode": "no_thread", "consecutive_from_me": consecutive}
+def compute_total_score(
+    body: str,
+    lang: str,
+) -> Tuple[int, List[str]]:
+    score, reasons = quick_risk_score(body, lang)
+
+    if has_explicit_emotion(body, lang):
+        score += 4
+        reasons.append(
+            "ביטוי רגשי ישיר" if lang == "he" else "Explicit emotional expression"
+        )
+
+    length = len(body or "")
+    if length > VERY_LONG_TEXT_THRESHOLD:
+        score += 4
+        reasons.append("טקסט ארוך מאוד" if lang == "he" else "Very long message")
+    elif length > LONG_TEXT_THRESHOLD:
+        score += 2
+        reasons.append("טקסט ארוך" if lang == "he" else "Long message")
+
+    return score, list(dict.fromkeys(reasons))
 
 # --------------------------------------------------
 # Main entry
@@ -131,90 +162,66 @@ def analyze_before_send(
     is_reply: bool = False,
     thread_context: Optional[List[ThreadMessage]] = None,
 ):
-    lang = detect_lang(body, language)
+    lang = detect_lang(body or subject or "", language)
     res = base_response(body, lang)
 
-    score, reasons = quick_risk_score(body, lang)
-    explicit_emotion = has_explicit_emotion(body, lang)
-
-    # ---------- רגש מפורש = סיכון מינימום medium ----------
-    if explicit_emotion:
-        score = max(score, 4)
-        res["intent"] = (
-            "הבעת תסכול / רגש"
-            if lang == "he"
-            else "Emotional expression / frustration"
+    # ---------- RULE 1: THREAD ALWAYS GOES TO GEMINI ----------
+    if thread_context:
+        res["analysis_layer"] = "thread_forced_gemini"
+        prompt = build_before_send_prompt(
+            body=body,
+            subject=subject,
+            language=lang,
+            is_reply=is_reply,
+            thread_context=thread_context,
         )
-        res["risk_factors"] = reasons + [
-            "ביטוי רגשי ישיר" if lang == "he" else "Explicit emotional expression"
-        ]
-        res["recipient_interpretation"] = (
-            "ההודעה עלולה להיתפס כלחוצה או רגשית."
-            if lang == "he"
-            else "The message may be perceived as emotionally charged."
+        return _run_gemini(prompt, res)
+
+    # ---------- RULE 2: VERY LONG MESSAGE ALWAYS GOES TO GEMINI ----------
+    if len(body or "") > VERY_LONG_TEXT_THRESHOLD:
+        res["analysis_layer"] = "long_text_forced_gemini"
+        prompt = build_before_send_prompt(
+            body=body,
+            subject=subject,
+            language=lang,
+            is_reply=is_reply,
+            thread_context=None,
         )
-    else:
-        res["risk_factors"] = reasons
+        return _run_gemini(prompt, res)
 
-    res["risk_level"] = risk_bucket(score)
+    # ---------- SCORING ----------
+    total_score, reasons = compute_total_score(body, lang)
+    res["risk_factors"] = reasons
+    res["risk_level"] = risk_bucket(total_score)
 
-    # ---------- החלטת מערכת מקומית עקבית ----------
-    if res["risk_level"] == "low":
-        res["send_decision"] = "send_as_is"
-    elif res["risk_level"] == "medium":
+    if res["risk_level"] == "medium":
         res["send_decision"] = "send_with_caution"
-        res["notes_for_sender"].append(
-            "ייתכן שכדאי לרכך מעט את הטון לפני שליחה."
-            if lang == "he"
-            else "You may want to slightly soften the tone before sending."
-        )
-    else:  # high
+    elif res["risk_level"] == "high":
         res["send_decision"] = "rewrite_recommended"
-        res["notes_for_sender"].append(
-            "הניסוח הנוכחי עלול להסלים את השיח."
-            if lang == "he"
-            else "The current wording may escalate the conversation."
-        )
 
-    # ---------- אין שרשור ואין סיכון ----------
-    if score == 0 and not explicit_emotion and not thread_context:
-        res["analysis_layer"] = "lexicon_only"
+# ---------- STOP: מתחת לסף → בלי Gemini ----------
+    if total_score < GEMINI_SCORE_THRESHOLD:
         return res
+    
+# ---------- GEMINI ----------
 
-    thread_info = analyze_thread_structure(thread_context)
-    mode = thread_info["mode"]
-    consecutive = thread_info["consecutive_from_me"]
+    res["analysis_layer"] = "score_threshold_gemini"
+    res["send_decision"] = "rewrite_recommended"
 
-    logger.info(
-        "Thread analysis: mode=%s consecutive=%s score=%s emotion=%s",
-        mode, consecutive, score, explicit_emotion
-    )
-
-    # ---------- רצף הודעות ממני ----------
-    if mode == "self_sequence":
-        res["analysis_layer"] = "self_sequence"
-        if consecutive >= 2 and res["risk_level"] != "low":
-            res["notes_for_sender"].append(
-                "נשלחו כמה הודעות ברצף — ייתכן שהנמען יחווה זאת כהצפה."
-                if lang == "he"
-                else "Multiple consecutive messages may feel overwhelming."
-            )
-        return res
-
-    # ---------- דיאלוג ----------
-    if mode == "dialog" and res["risk_level"] == "low":
-        res["analysis_layer"] = "dialog_no_ai"
-        return res
-
-    # ---------- Gemini ----------
     prompt = build_before_send_prompt(
         body=body,
         subject=subject,
         language=lang,
         is_reply=is_reply,
-        thread_context=thread_context,
+        thread_context=None,
     )
+    return _run_gemini(prompt, res)
 
+# --------------------------------------------------
+# Gemini runner
+# --------------------------------------------------
+
+def _run_gemini(prompt: str, res: dict) -> dict:
     gem = generate_structured_json(prompt, BEFORE_SEND_SCHEMA)
 
     if gem.get("error"):
@@ -224,6 +231,8 @@ def analyze_before_send(
         res["analysis_layer"] = "gemini_failed"
         return res
 
-    gem["ai_ok"] = True
-    gem["analysis_layer"] = "gemini"
-    return gem
+    res.update(gem)
+    res["analysis_layer"] = "gemini"  
+    res["ai_ok"] = True
+    return res
+

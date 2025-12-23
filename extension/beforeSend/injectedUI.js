@@ -401,21 +401,133 @@
   // ===============================
   // 🚀 Open Panel
   // ===============================
-  function openPanel(composeContext, handlers) {
-    currentComposeContext = composeContext;
-    applyHandlers = handlers;
+function openPanel(composeContext, handlers) {
+  currentComposeContext = composeContext;
+  applyHandlers = handlers;
 
-    const panel = createPanel();
-    panel.style.display = "block";
+  const panel = createPanel();
+  panel.style.display = "block";
 
-    const reanalyzeBtn = panel.querySelector(".ai-btn-reanalyze");
-    if (reanalyzeBtn) reanalyzeBtn.style.display = "none";
+  const reanalyzeBtn = panel.querySelector(".ai-btn-reanalyze");
+  if (reanalyzeBtn) reanalyzeBtn.style.display = "none";
 
-    // Auto-analyze on open
-    setTimeout(() => {
-      panel._runAnalysis && panel._runAnalysis();
-    }, 0);
+  // ✅ התקיני fallback פעם אחת
+  installCloseHooksOnce();
+
+  // ✅ עקבי אחרי קומפוז – גם אם composeElement לא הגיע / לא נכון
+  observeComposeRemoval(composeContext?.composeElement);
+
+  setTimeout(() => {
+    panel._runAnalysis && panel._runAnalysis();
+  }, 0);
+}
+
+// ===============================
+// 🧷 Compose Tracking (Gmail-safe)
+// ===============================
+let composeObserver = null;
+let composeRootTracked = null;
+
+function findLikelyComposeRoot() {
+  // Gmail compose windows are typically role="dialog"
+  // We take the last (most recent) visible dialog
+  const dialogs = Array.from(document.querySelectorAll('div[role="dialog"]'))
+    .filter(d => d.offsetParent !== null); // visible-ish
+
+  if (!dialogs.length) return null;
+  return dialogs[dialogs.length - 1];
+}
+
+function normalizeComposeRoot(el) {
+  if (!el) return null;
+
+  // If the caller passed a textarea/contenteditable inside the compose,
+  // climb up to the dialog root.
+  const dialog = el.closest && el.closest('div[role="dialog"]');
+  return dialog || el;
+}
+
+function stopComposeObserver() {
+  if (composeObserver) {
+    composeObserver.disconnect();
+    composeObserver = null;
   }
+  composeRootTracked = null;
+}
+
+function observeComposeRemoval(composeElementMaybeInner) {
+  stopComposeObserver();
+
+  const root = normalizeComposeRoot(composeElementMaybeInner) || findLikelyComposeRoot();
+  if (!root) {
+    // אם לא מצאנו קומפוז בכלל – אל תפעילי observer עיוור
+    console.warn("AIGuard: Could not find compose root to observe.");
+    return;
+  }
+
+  composeRootTracked = root;
+
+  composeObserver = new MutationObserver(() => {
+    // ברגע שה־root כבר לא בדום -> הקומפוז נסגר/נשלח/נמחק
+    if (!document.body.contains(composeRootTracked)) {
+      closePanel();
+      stopComposeObserver();
+    }
+  });
+
+  composeObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+// ===============================
+// 🧨 Fallback: close on Send / Discard clicks
+// ===============================
+let closeHooksInstalled = false;
+
+function installCloseHooksOnce() {
+  if (closeHooksInstalled) return;
+  closeHooksInstalled = true;
+
+  document.addEventListener("click", (e) => {
+    if (!panelRoot || panelRoot.style.display === "none") return;
+
+    const target = e.target;
+    if (!target) return;
+
+    // Try to catch Gmail "Send" / "Discard" / close actions.
+    const btn = target.closest && target.closest('div[role="button"], button');
+    if (!btn) return;
+
+    const label = (
+      btn.getAttribute("aria-label") ||
+      btn.textContent ||
+      ""
+    ).trim().toLowerCase();
+
+    // Hebrew + English common labels
+    const isSend =
+      label === "send" ||
+      label.includes("send") ||
+      label.includes("שלח") ||
+      label.includes("שליחה");
+
+    const isDiscard =
+      label.includes("discard") ||
+      label.includes("מחק") ||
+      label.includes("מחיק") ||
+      label.includes("discard draft") ||
+      label.includes("delete draft") ||
+      label.includes("ביטול") ||
+      label.includes("סגור");
+
+    if (isSend || isDiscard) {
+      // תני ל־Gmail לבצע את הפעולה, ואז סגרי
+      setTimeout(() => {
+        closePanel();
+        stopComposeObserver();
+      }, 50);
+    }
+  }, true);
+}
 
   // ===============================
   // 🌍 Initialize
