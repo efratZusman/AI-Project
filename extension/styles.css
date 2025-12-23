@@ -1159,7 +1159,7 @@ body.ai-dark-mode .ai-history-item:hover {
   border-radius: 10px;
 
   background: rgba(15, 23, 42, 0.95);
-  color: #f8fafc;
+  color: #000000;
 
   font: 600 13px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
@@ -1172,7 +1172,6 @@ body.ai-dark-mode .ai-history-item:hover {
 /* מופיע */
 .ai-chat-warning.visible {
   opacity: 1;
-    backdrop-filter: blur(6px);
   transform: translateX(-50%) translateY(0);
 }
 
@@ -1182,7 +1181,7 @@ body.ai-dark-mode .ai-history-item:hover {
 
 .ai-chat-warning.error {
   /* border-left: 4px solid #dc2626; */
-  background: rgba(24, 24, 27, 0.96);
+  background: rgb(92, 92, 97);
 }
 
 /* =========================
@@ -1190,18 +1189,18 @@ body.ai-dark-mode .ai-history-item:hover {
    ========================= */
 /* 🟡 Low */
 .ai-chat-warning.warning.low {
-  border-left: 4px solid #facc15;
-  background: rgba(250, 204, 21, 0.12);
+  border-left: 4px solid rgb(250, 204, 21);
+  background: rgb(250, 204, 21);
 }
 
 /* 🟠 Medium */
 .ai-chat-warning.warning.medium {
   border-left: 4px solid #f59e0b;
-  background: rgba(245, 158, 11, 0.14);
+  background: #f59e0b;
 }
 
 /* 🔴 High */
 .ai-chat-warning.warning.high {
   border-left: 4px solid #ef4444;
-  background: rgba(239, 68, 68, 0.16);
+  background:#ef4444;
 }
