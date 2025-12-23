@@ -1,59 +1,91 @@
 // chatMonitor/chatState.js
 (function () {
   const CONFIG = {
-    SCORE_THRESHOLD: 6,
-    MIN_MEANINGFUL_MESSAGES: 4,
-    DEBOUNCE_MS: 90_000,
-    CLEANUP_AFTER_MS: 20 * 60 * 1000, // 20 דקות
+    SCORE_THRESHOLD: 4,
+    MIN_MEANINGFUL_MESSAGES: 2,
   };
 
   const statesByConversation = new Map();
 
-  function getState(conversationKey) {
-    if (!statesByConversation.has(conversationKey)) {
-      statesByConversation.set(conversationKey, {
+  function getState(key) {
+    if (!statesByConversation.has(key)) {
+      statesByConversation.set(key, {
         score: 0,
         meaningfulMessages: 0,
         messages: [],
-        lastAnalysisTs: 0,
-        lastTouchedTs: Date.now(),
+        lastMessageTs: 0,          // מתי נוספה הודעה אחרונה
+        lastAnalyzedMessageTs: 0,  // על איזו הודעה כבר ניתחנו
+        lockedUntilNextMessage: false,
+        enteredAt: 0,   // מתי נכנסנו לשיחה
+        readyAt: 0,     // מאיזה זמן מותר לנתח
+        currentConversationKey: null,
+        lastAnalyzedAt: 0,   // מתי בוצע ניתוח אחרון (timestamp)
       });
     }
-
-    const state = statesByConversation.get(conversationKey);
-    state.lastTouchedTs = Date.now();
-    return state;
+    return statesByConversation.get(key);
   }
 
-  function shouldAnalyze(state) {
-    const now = Date.now();
-    return (
-      state.score >= CONFIG.SCORE_THRESHOLD &&
-      state.meaningfulMessages >= CONFIG.MIN_MEANINGFUL_MESSAGES &&
-      now - state.lastAnalysisTs > CONFIG.DEBOUNCE_MS
-    );
+// function shouldAnalyze(state) {
+//   // ⛔ כבר ניתחנו את הרצף הזה → לא מנתחים שוב
+//   if (state.lockedUntilNextMessage) {
+//     return false;
+//   }
+
+//   // ❌ אין הודעה חדשה → אין ניתוח
+//   if (state.lastMessageTs <= state.lastAnalyzedMessageTs) {
+//     return false;
+//   }
+
+//   // 🟥 מסלול 1: סיכון רגשי
+//   const riskBased =
+//     state.score >= CONFIG.SCORE_THRESHOLD &&
+//     state.meaningfulMessages >= CONFIG.MIN_MEANINGFUL_MESSAGES;
+
+//   // 🟦 מסלול 2: דינמיקה מתמשכת
+//   const flowBased =
+//     state.meaningfulMessages >= 6;
+
+//   return riskBased || flowBased;
+// }
+
+function shouldAnalyze(state) {
+  const now = Date.now();
+
+  // ⛔ ניתחנו לאחרונה – תני לשיחה להתקדם
+  const COOLDOWN_MS = 60_000; // דקה
+  if (now - state.lastAnalyzedAt < COOLDOWN_MS) {
+    return false;
   }
 
-  function markAnalyzed(state) {
-    state.lastAnalysisTs = Date.now();
-    state.score = 0;
-    state.meaningfulMessages = 0;
-    state.messages = [];
+  // ❌ אין הודעה חדשה מאז הניתוח
+  if (state.lastMessageTs <= state.lastAnalyzedMessageTs) {
+    return false;
   }
 
-  // 🧹 ניקוי states ישנים
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, state] of statesByConversation.entries()) {
-      if (now - state.lastTouchedTs > CONFIG.CLEANUP_AFTER_MS) {
-        statesByConversation.delete(key);
-      }
-    }
-  }, 5 * 60 * 1000);
+  // 🟥 תנאי מינימלי לניתוח
+  const hasFlow =
+    state.messages.length >= 4 &&
+    state.meaningfulMessages >= 2;
 
-  window.ChatState = {
-    getState,
-    shouldAnalyze,
-    markAnalyzed,
-  };
+  return hasFlow;
+}
+
+
+function markAnalyzed(state) {
+  const now = Date.now();
+
+  state.lastAnalyzedMessageTs = state.lastMessageTs;
+  state.lastAnalyzedAt = now;
+
+  // 🔒 נועלים עד רצף חדש אמיתי
+  state.lockedUntilNextMessage = true;
+
+  // מאפסים צבירה
+  state.score = 0;
+  state.meaningfulMessages = 0;
+  state.messages = [];
+}
+
+
+  window.ChatState = { getState, shouldAnalyze, markAnalyzed };
 })();
