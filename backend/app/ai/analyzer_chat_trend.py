@@ -17,7 +17,7 @@ def analyze_chat_trend(messages: List[str], language: str = "auto") -> dict:
     lang = detect_lang_from_messages(messages, language)
 
     # ברירת מחדל בטוחה
-    fallback = {"risk_level": "low", "warning_text": ""}
+    fallback = {"risk_level": "low", "warning_text": "", "ai_ok": False}
 
     # אם אין הודעות — אין מה לנתח
     msgs = [m for m in (messages or []) if (m or "").strip()]
@@ -27,10 +27,10 @@ def analyze_chat_trend(messages: List[str], language: str = "auto") -> dict:
     prompt = build_chat_trend_prompt(msgs[-10:], lang)
     gem = generate_structured_json(prompt, CHAT_TREND_SCHEMA)
 
-    if gem.get("error"):
-        logger.warning("Gemini chat trend failed: %s", gem.get("error"))
-        # לא מפילים את התוסף בגלל AI
-        return {**fallback, "ai_ok": False, "ai_error_code": gem.get("error")}
+    # ⭐ התיקון הקריטי כאן
+    if not isinstance(gem, dict) or gem.get("error"):
+        logger.warning("Gemini chat trend failed: %s", getattr(gem, "get", lambda _: gem)("error"))
+        return {**fallback, "ai_ok": False}
 
     # ניקוי: להבטיח קצר
     warning = (gem.get("warning_text") or "").strip()

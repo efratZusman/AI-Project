@@ -14,7 +14,7 @@ logger = logging.getLogger("analyzer")
 # Config
 # --------------------------------------------------
 
-GEMINI_SCORE_THRESHOLD = 8
+GEMINI_SCORE_THRESHOLD = 6
 LONG_TEXT_THRESHOLD = 600
 VERY_LONG_TEXT_THRESHOLD = 1200
 
@@ -220,19 +220,23 @@ def analyze_before_send(
 # --------------------------------------------------
 # Gemini runner
 # --------------------------------------------------
-
 def _run_gemini(prompt: str, res: dict) -> dict:
     gem = generate_structured_json(prompt, BEFORE_SEND_SCHEMA)
 
-    if gem.get("error"):
+    if not isinstance(gem, dict) or gem.get("error"):
         res["ai_ok"] = False
-        res["ai_error_code"] = gem.get("error")
-        res["ai_error_message"] = gem.get("message") or ""
+        res["ai_error_code"] = gem.get("error") if isinstance(gem, dict) else None
+        res["ai_error_message"] = gem.get("message") if isinstance(gem, dict) else ""
         res["analysis_layer"] = "gemini_failed"
         return res
 
-    res.update(gem)
-    res["analysis_layer"] = "gemini"  
-    res["ai_ok"] = True
-    return res
+    # ⭐ כאן השינוי הקריטי ⭐
+    return {
+        **res,               # שדות כלליים (lang וכו')
+        **gem,               # 👈 Gemini דורס הכל
+        "analysis_layer": "gemini",
+        "ai_ok": True,
+        "ai_error_code": None,
+        "ai_error_message": None,
+    }
 
