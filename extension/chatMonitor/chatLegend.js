@@ -1,12 +1,13 @@
+// chatMonitor/chatLegend.js
 (function () {
   const BTN_ID = "ai-chat-toggle";
   const LEGEND_ID = "ai-chat-legend";
 
-  function mountLegendAboveToggle() {
+  function mountLegend() {
     const toggleBtn = document.getElementById(BTN_ID);
-    if (!toggleBtn) return false; // לא הפריים הנכון (או עוד לא נטען)
+    if (!toggleBtn) return false;
 
-    if (document.getElementById(LEGEND_ID)) return true; // כבר קיים בפריים הזה
+    if (document.getElementById(LEGEND_ID)) return true;
 
     const legend = document.createElement("div");
     legend.id = LEGEND_ID;
@@ -17,18 +18,14 @@
       <div><span class="dot positive"></span> חיובי / מרכך</div>
     `;
 
-    toggleBtn.parentNode.insertBefore(legend, toggleBtn);
+    document.body.appendChild(legend);
     return true;
   }
 
-  // נסי מיד
-  if (mountLegendAboveToggle()) return;
-
-  // ואם עוד לא קיים, חכי עד שיופיע (בדיוק כמו שעשית בטוגל)
+  // 🔁 חכי עד שה־toggle יופיע בפריים הזה
   const iv = setInterval(() => {
-    if (mountLegendAboveToggle()) clearInterval(iv);
+    if (mountLegend()) clearInterval(iv);
   }, 300);
 
-  // גיבוי: עצירה אחרי 10 שניות כדי לא לרוץ לנצח
-  setTimeout(() => clearInterval(iv), 10000);
+  setTimeout(() => clearInterval(iv), 10_000);
 })();
