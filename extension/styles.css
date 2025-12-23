@@ -972,7 +972,6 @@ body.ai-dark-mode .ai-history-item:hover {
 
 .ai-lexicon-word {
   text-decoration: underline dotted;
-  cursor: help;
 }
 
 .ai-lexicon-word.pressure {
