@@ -1,72 +1,90 @@
+// chatMonitor/chatObserver.js
 (function () {
-    const MESSAGE_SELECTOR = "div.DTp27d";
-    const RETRY_MS = 1500;
+  const MESSAGE_SELECTOR = "div.DTp27d";
+  const RETRY_MS = 1500;
 
-    function isChatMonitorEnabled() {
-        return localStorage.getItem("ai_chat_monitor_enabled") !== "false";
+  function isChatMonitorEnabled() {
+    return localStorage.getItem("ai_chat_monitor_enabled") !== "false";
+  }
+
+  function getConversationKey() {
+    const header =
+      document.querySelector('[aria-label][role="heading"]') ||
+      document.querySelector("h1, h2");
+
+    if (!header) return "unknown_conversation";
+    return header.innerText.trim();
+  }
+
+  function init() {
+    const messages = document.querySelectorAll(MESSAGE_SELECTOR);
+    if (!messages.length) {
+      setTimeout(init, RETRY_MS);
+      return;
     }
 
-    function init() {
-        const messages = document.querySelectorAll(MESSAGE_SELECTOR);
-        if (!messages.length) {
-            setTimeout(init, RETRY_MS);
-            return;
-        }
+    const observer = new MutationObserver((mutations) => {
+      if (!isChatMonitorEnabled()) return;
 
-        const observer = new MutationObserver((mutations) => {
-            if (!isChatMonitorEnabled()) return;
+      const conversationKey = getConversationKey();
+      const state = window.ChatState.getState(conversationKey);
 
-            mutations.forEach(m => {
-                m.addedNodes.forEach(node => {
-                    if (!(node instanceof HTMLElement)) return;
+      mutations.forEach((m) => {
+        m.addedNodes.forEach((node) => {
+          if (!(node instanceof HTMLElement)) return;
 
-                    const msgEl = node.matches?.(MESSAGE_SELECTOR)
-                        ? node
-                        : node.querySelector?.(MESSAGE_SELECTOR);
+          const msgEl = node.matches?.(MESSAGE_SELECTOR)
+            ? node
+            : node.querySelector?.(MESSAGE_SELECTOR);
 
-                    if (!msgEl) return;
+          if (!msgEl) return;
 
-                    const text = msgEl.innerText || "";
-                    const words = text.split(/\s+/).length;
+          const text = msgEl.innerText || "";
+          const words = text.split(/\s+/).length;
 
-                    const score = window.ChatHighlighter.highlight(msgEl, "he");
+          const score = window.ChatHighlighter.highlight(msgEl, "he");
 
-                    const state = window.ChatState.state;
-                    state.score += score;
-                    state.messages.push(text);
+          state.score += score;
+          state.messages.push(text);
 
-                    if (words >= 5) state.meaningfulMessages += 1;
+          if (words >= 5) state.meaningfulMessages += 1;
 
-                    if (window.ChatState.shouldAnalyze()) {
-                        chrome.runtime.sendMessage(
-                            {
-                                action: "analyzeChatTrend",
-                                messages: state.messages.slice(-10),
-                            },
-                            (res) => {
-                                if (!res) return;
+          if (window.ChatState.shouldAnalyze(state)) {
+            chrome.runtime.sendMessage(
+              {
+                action: "analyzeChatTrend",
+                messages: state.messages.slice(-10),
+                conversationKey,
+              },
+              (res) => {
+                // ✅ כאן השילוב שביקשת
 
-                                if (res.ai_ok === false) {
-                                    window.ChatWarnings.showError(
-                                        "מערכת הניטור אינה זמינה כרגע. ייתכן שהמידע אינו מנותח בזמן אמת."
-                                    );
-                                    return;
-                                }
+                if (!res) return;
 
-                                if (res.warning_text && res.risk_level) {
-                                    window.ChatWarnings.show(res.warning_text, res.risk_level);
-                                }
-                            }
-                        );
+                if (res.ai_ok === false) {
+                  window.ChatWarnings.showError(
+                    "מערכת הניטור אינה זמינה כרגע. ייתכן שהמידע אינו מנותח בזמן אמת."
+                  );
+                  return;
+                }
 
-                        window.ChatState.markAnalyzed();
-                    }
-                });
-            });
+                if (res.warning_text && res.risk_level) {
+                  window.ChatWarnings.show(
+                    res.warning_text,
+                    res.risk_level
+                  );
+                }
+              }
+            );
+
+            window.ChatState.markAnalyzed(state);
+          }
         });
+      });
+    });
 
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 
-    init();
+  init();
 })();
