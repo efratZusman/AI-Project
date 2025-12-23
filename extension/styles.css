@@ -742,7 +742,7 @@
 }
 
 .ai-guard-trigger-btn::before {
-  content: '✨';
+  content: '👀';
   margin-left: 6px;
   font-size: 14px;
 }
@@ -761,7 +761,7 @@
 }
 
 .ai-guard-trigger-btn:focus {
-  outline: 2px solid #3b82f6;
+  /* outline: 2px solid #3b82f6; */
   outline-offset: 2px;
 }
 
@@ -972,7 +972,6 @@ body.ai-dark-mode .ai-history-item:hover {
 
 .ai-lexicon-word {
   text-decoration: underline dotted;
-  cursor: help;
 }
 
 .ai-lexicon-word.pressure {
@@ -1173,23 +1172,8 @@ body.ai-dark-mode .ai-history-item:hover {
 /* מופיע */
 .ai-chat-warning.visible {
   opacity: 1;
+    backdrop-filter: blur(6px);
   transform: translateX(-50%) translateY(0);
-}
-
-/* =========================
-   Warning – לפי risk_level
-   ========================= */
-
-.ai-chat-warning.warning.low {
-  border-left: 4px solid #64748b; /* אפור */
-}
-
-.ai-chat-warning.warning.medium {
-  border-left: 4px solid #f59e0b; /* כתום */
-}
-
-.ai-chat-warning.warning.high {
-  border-left: 4px solid #ef4444; /* אדום */
 }
 
 /* =========================
@@ -1197,6 +1181,27 @@ body.ai-dark-mode .ai-history-item:hover {
    ========================= */
 
 .ai-chat-warning.error {
-  border-left: 4px solid #dc2626;
+  /* border-left: 4px solid #dc2626; */
   background: rgba(24, 24, 27, 0.96);
+}
+
+/* =========================
+   Warning – לפי risk_level
+   ========================= */
+/* 🟡 Low */
+.ai-chat-warning.warning.low {
+  border-left: 4px solid #facc15;
+  background: rgba(250, 204, 21, 0.12);
+}
+
+/* 🟠 Medium */
+.ai-chat-warning.warning.medium {
+  border-left: 4px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.14);
+}
+
+/* 🔴 High */
+.ai-chat-warning.warning.high {
+  border-left: 4px solid #ef4444;
+  background: rgba(239, 68, 68, 0.16);
 }

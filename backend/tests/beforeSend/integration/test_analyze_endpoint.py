@@ -4,14 +4,14 @@ from app.main import app
 client = TestClient(app)
 
 def test_analyze_endpoint_basic(monkeypatch):
-    # מדמים תשובה של Gemini
+    # מדמים תשובה של Gemini (קובע סופית)
     def fake_generate(prompt, schema):
         return {
             "intent": "Professional reminder",
             "risk_level": "medium",
             "risk_factors": ["Pressure"],
             "recipient_interpretation": "Might feel pressured",
-            "send_decision": "send_with_caution",
+            "send_decision": "rewrite_recommended",
             "follow_up_needed": False,
             "follow_up_reason": "",
             "safer_subject": None,
@@ -26,7 +26,7 @@ def test_analyze_endpoint_basic(monkeypatch):
 
     payload = {
         "subject": "ASAP",
-        "body": "Please respond ASAP",
+        "body": "Please respond ASAP, you didn't respond to my last message",
         "language": "en",
         "is_reply": False,
         "thread_context": None,
@@ -38,5 +38,7 @@ def test_analyze_endpoint_basic(monkeypatch):
 
     data = response.json()
     assert data["risk_level"] == "medium"
-    assert data["send_decision"] == "send_with_caution"
+    assert data["send_decision"] == "rewrite_recommended"
+    assert data["analysis_layer"] == "gemini"
+    assert data["ai_ok"] is True
     assert "safer_body" in data

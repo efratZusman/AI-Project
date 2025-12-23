@@ -1,4 +1,3 @@
-# extension/Dockerfile
 FROM node:20-alpine
 
 LABEL maintainer="ai-guard"
@@ -10,13 +9,14 @@ WORKDIR /app
 COPY . .
 
 # בדיקות מבנה בסיסיות
-RUN test -f manifest.json \
- && test -d shared
+RUN test -f manifest.json
 
-# בדיקות syntax לכל קבצי ה-JS
-RUN for file in shared/*.js; do \
-      echo "Checking $file"; \
-      node --check "$file"; \
+# בדיקות syntax לכל קבצי ה-JS בתוסף
+RUN for file in *.js beforeSend/*.js chatMonitor/*.js; do \
+      if [ -f "$file" ]; then \
+        echo "Checking $file"; \
+        node --check "$file"; \
+      fi; \
     done
 
 # אם הגענו עד כאן – התוסף תקין

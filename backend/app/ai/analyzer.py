@@ -14,7 +14,7 @@ logger = logging.getLogger("analyzer")
 # Config
 # --------------------------------------------------
 
-GEMINI_SCORE_THRESHOLD = 8
+GEMINI_SCORE_THRESHOLD = 6
 LONG_TEXT_THRESHOLD = 600
 VERY_LONG_TEXT_THRESHOLD = 1200
 
@@ -23,14 +23,9 @@ VERY_LONG_TEXT_THRESHOLD = 1200
 # --------------------------------------------------
 
 def detect_lang(text: str, language: str) -> str:
-    if language in ("he", "en"):
-        return language
-
-    if not (text or "").strip():
-        return "he"  # ✅ ברירת מחדל בטוחה
-
-    return "he" if any("\u0590" <= ch <= "\u05EA" for ch in text) else "en"
-
+    if language == "en":
+        return "en"
+    return "he"
 
 def risk_bucket(score: int) -> str:
     if score <= 1:
@@ -125,6 +120,52 @@ def analyze_thread_structure(thread: Optional[List[ThreadMessage]]) -> dict:
 
     return {"consecutive_from_me": consecutive}
 
+ # --------------------------------------------------
+ # local interpretation
+ # --------------------------------------------------
+def local_interpretation(score: int, reasons: List[str], lang: str) -> dict:
+    if score <= 1:
+        return {}
+
+    if score <= 4:
+        # MEDIUM
+        return {
+            "intent": (
+                "Pushing for progress with pressure"
+                if lang == "en"
+                else "קידום נושא תוך הפעלת לחץ"
+            ),
+            "recipient_interpretation": (
+                "The message may be perceived as pressured or critical."
+                if lang == "en"
+                else "ההודעה עלולה להיתפס כלחוצה או ביקורתית."
+            ),
+            "notes_for_sender": (
+                ["Consider softening the tone or clarifying positive intent."]
+                if lang == "en"
+                else ["שקול לרכך את הטון או להבהיר כוונה חיובית."]
+            ),
+        }
+
+    # HIGH (אבל עדיין לפני Gemini)
+    return {
+        "intent": (
+            "Expressing frustration or making a firm demand"
+            if lang == "en"
+            else "הבעת תסכול או דרישה נחרצת"
+        ),
+        "recipient_interpretation": (
+            "The message may be perceived as a personal attack or escalation."
+            if lang == "en"
+            else "ההודעה עלולה להיתפס כהתקפה אישית או כהסלמה."
+        ),
+        "notes_for_sender": (
+            ["The tone may harm the dialogue."]
+            if lang == "en"
+            else ["הטון עלול לפגוע בדיאלוג."]
+        ),
+    }
+
 # --------------------------------------------------
 # Unified score calculation
 # --------------------------------------------------
@@ -194,6 +235,9 @@ def analyze_before_send(
     res["risk_factors"] = reasons
     res["risk_level"] = risk_bucket(total_score)
 
+    interpretation = local_interpretation(total_score, reasons, lang)
+    res.update(interpretation)
+
     if res["risk_level"] == "medium":
         res["send_decision"] = "send_with_caution"
     elif res["risk_level"] == "high":
@@ -220,19 +264,23 @@ def analyze_before_send(
 # --------------------------------------------------
 # Gemini runner
 # --------------------------------------------------
-
 def _run_gemini(prompt: str, res: dict) -> dict:
     gem = generate_structured_json(prompt, BEFORE_SEND_SCHEMA)
 
-    if gem.get("error"):
+    if not isinstance(gem, dict) or gem.get("error"):
         res["ai_ok"] = False
-        res["ai_error_code"] = gem.get("error")
-        res["ai_error_message"] = gem.get("message") or ""
+        res["ai_error_code"] = gem.get("error") if isinstance(gem, dict) else None
+        res["ai_error_message"] = gem.get("message") if isinstance(gem, dict) else ""
         res["analysis_layer"] = "gemini_failed"
         return res
 
-    res.update(gem)
-    res["analysis_layer"] = "gemini"  
-    res["ai_ok"] = True
-    return res
+    # ⭐ כאן השינוי הקריטי ⭐
+    return {
+        **res,               # שדות כלליים (lang וכו')
+        **gem,               # 👈 Gemini דורס הכל
+        "analysis_layer": "gemini",
+        "ai_ok": True,
+        "ai_error_code": None,
+        "ai_error_message": None,
+    }
 

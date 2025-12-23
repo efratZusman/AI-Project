@@ -10,6 +10,7 @@ def test_empty_body_does_not_crash():
         thread_context=None,
     )
 
-    assert "risk_level" in res
-    assert "send_decision" in res
+    assert res["risk_level"] == "low"
+    assert res["send_decision"] == "send_as_is"
+    assert res["analysis_layer"] == "local_scoring"
     assert res["ai_ok"] is True

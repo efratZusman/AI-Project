@@ -36,7 +36,7 @@
     const composeRoot = findComposeRoot(sendBtn);
 
     const btn = document.createElement("button");
-    btn.textContent = "ניתוח לפני שליחה";
+    btn.textContent = "עוד מבט";
     btn.className = "ai-guard-trigger-btn";
     btn.classList.add("ai-guard-trigger-btn");
 
